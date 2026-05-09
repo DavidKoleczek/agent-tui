@@ -1,0 +1,7 @@
+[alias]
+lint = "clippy --all-targets --all-features -- -D warnings"
+ci   = "fmt --all -- --check"
+
+# Statically link the MSVC C runtime on Windows so the .exe has no external runtime dependencies.
+[target.'cfg(all(target_os = "windows", target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]

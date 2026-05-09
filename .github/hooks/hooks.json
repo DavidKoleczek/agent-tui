@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "cargo fmt --all" },
+          { "type": "command", "command": "cargo clippy --all-targets" }
+        ]
+      }
+    ]
+  }
+}

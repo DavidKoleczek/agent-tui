@@ -1,0 +1,18 @@
+[package]
+name = "agent-tui"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+description = "Terminal user interface for AI agents."
+repository = "https://github.com/DavidKoleczek/agent-tui"
+
+[dependencies]
+color-eyre = "0.6.5"
+crossterm = "0.29.0"
+ratatui = "0.30.0"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

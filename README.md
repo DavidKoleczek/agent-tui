@@ -36,3 +36,29 @@ These are the features at I view as necessary for moving over my development.
 - Continual chat title refinement
 - Integration with different apps (like Fusion) - App interaction protocol
 
+
+## Development
+
+1. Ensure Rust is installed: https://rust-lang.org/tools/install/
+    ```bash
+    # Update with:
+    rustup update
+    # Then make sure you have rustfmt and clippy
+    rustup component add rustfmt clippy
+    ```
+1. Run the app:
+    ```bash
+    cargo run
+    ```
+1. Format and lint:
+    ```bash
+    cargo fmt --all
+    cargo lint
+    ```
+1. Build and run the release executable:
+    ```bash
+    # Windows (PowerShell)
+    cargo build --release; .\target\release\agent-tui.exe
+    # Linux
+    cargo build --release && ./target/release/agent-tui
+    ```
