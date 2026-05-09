@@ -5,70 +5,34 @@
     <p align="center">Terminal user interface for AI agents built on <a href="https://github.com/DavidKoleczek/agent-core">agent-core</a>.</p>
 </p>
 <p align="center">
-    <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv"></a>
-    <a href="https://github.com/astral-sh/ty"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json" alt="ty"></a>
-    <a href="https://pypi.org/project/agent-tui/"><img src="https://img.shields.io/pypi/v/agent-tui" alt="PyPI"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
-A [Textual](https://textual.textualize.io/)-based terminal interface for interacting with AI agents. Built on [agent-core](https://github.com/DavidKoleczek/agent-core) and [InteropRouter](https://github.com/DavidKoleczek/interop-router) for unified model provider support.
+An AI agent TUI built in Rust.
 
 > [!NOTE]
 > This library is in early development and subject to change.
 
 
-## Usage
+## List of Features
 
-Ensure `OPENAI_API_KEY` is set in your environment.
+These are the features at I view as necessary for moving over my development.
 
-Run directly from PyPI:
+- First class Windows support
+- Skills: .github/skills, .claude/skills, or .agents/skills
+- Multiple models, with seamless swap in the middle of the conversation
+- Bash tool that handles background tasks well
+  - General system for spawning background tasks that live in the context
+- Seamless stop, resume, and steering
+- Computer use mode
+- Conversations as files, knows how to explore
+- Bypass permissions is the default mode, with smart restrictions
+- Defining subagents, which can be run in parallel
+  - Ability to choose what context is passed (just from caller, last x messages, full history)
+- Infinite chat by default
+- Good plan mode
+- Verifier "mode" - define criteria, and it iterates until its done
+- Built in file type handling for the read tool: pdf, docx, excel, etc
+- Continual chat title refinement
+- Integration with different apps (like Fusion) - App interaction protocol
 
-```bash
-uvx agent-tui
-```
-
-Or if installed locally:
-
-```bash
-uv run agent-tui
-```
-
-Or run directly with Textual:
-
-```bash
-uv run textual run src.agent_tui.app:AgentApp
-```
-
-
-## Development
-
-### Prerequisites
-
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- [prek](https://github.com/j178/prek/blob/master/README.md#installation)
-
-### Setup
-
-Create uv virtual environment and install dependencies:
-
-```bash
-uv sync --frozen --all-groups
-```
-
-Set up git hooks:
-
-```bash
-prek install
-```
-
-To update dependencies (updates the lock file):
-
-```bash
-uv sync --all-groups
-```
-
-Run formatting, linting, and type checking:
-
-```bash
-uv run ruff format && uv run ruff check --fix && uv run ty check
-```
