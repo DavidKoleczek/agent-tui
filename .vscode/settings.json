@@ -1,3 +1,16 @@
 {
-  "markdown.extension.orderedList.marker": "one"
+  "markdown.extension.orderedList.marker": "one",
+
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.checkOnSave": true,
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.extraArgs": ["--", "-D", "warnings"],
+
+  "errorLens.enabledDiagnosticLevels": ["error", "warning", "info"],
+  "errorLens.excludeBySource": ["cSpell"]
 }
