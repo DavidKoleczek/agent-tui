@@ -31,5 +31,7 @@ Starting to build up the UX
 # Key Files
 
 @README.md
+
 @docs/keybinds.md - Keep this up to date as new keybindings are added
-reference/ includes the source code for key libraries
+
+reference/ includes the source code for key libraries like `opentui`

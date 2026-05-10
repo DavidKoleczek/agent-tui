@@ -36,3 +36,18 @@ These are the features at I view as necessary for moving over my development.
 - Built in file type handling for the read tool: pdf, docx, excel, etc
 - Continual chat title refinement
 - Integration with different apps (like Fusion) - App interaction protocol
+
+
+## Development
+
+To install dependencies:
+
+```bash
+bun install
+```
+
+To run:
+
+```bash
+bun dev
+```
