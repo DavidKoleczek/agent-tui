@@ -3,13 +3,25 @@
 
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
   },
 
   "rust-analyzer.cargo.features": "all",
   "rust-analyzer.checkOnSave": true,
   "rust-analyzer.check.command": "clippy",
   "rust-analyzer.check.extraArgs": ["--", "-D", "warnings"],
+
+  "rust-analyzer.rustfmt.extraArgs": [
+    "--config", "imports_granularity=Module",
+    "--config", "group_imports=StdExternalCrate"
+  ],
+  "rust-analyzer.imports.granularity.group": "module",
+  "rust-analyzer.imports.granularity.enforce": true,
+  "rust-analyzer.imports.group.enable": true,
+  "rust-analyzer.imports.merge.glob": false,
 
   "errorLens.enabledDiagnosticLevels": ["error", "warning", "info"],
   "errorLens.excludeBySource": ["cSpell"]

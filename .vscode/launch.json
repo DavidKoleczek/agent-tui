@@ -11,7 +11,8 @@
       },
       "args": [],
       "cwd": "${workspaceFolder}",
-      "terminal": "integrated"
+      "terminal": "integrated",
+      "env": { "RUST_BACKTRACE": "full" }
     },
     {
       "type": "lldb",

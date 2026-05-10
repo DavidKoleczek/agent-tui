@@ -11,6 +11,9 @@ repository = "https://github.com/DavidKoleczek/agent-tui"
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 ratatui = "0.30.0"
+ratatui-textarea = "0.9.1"
+unicode-segmentation = "1.10"
+unicode-width = "0.2"
 
 [profile.release]
 lto = "thin"

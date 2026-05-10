@@ -1,34 +1,39 @@
-use std::time::Duration;
+pub mod app;
+pub mod event;
+pub mod tui;
+pub mod ui;
+pub mod update;
+pub mod widgets;
 
+use app::App;
 use color_eyre::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::layout::Alignment;
-use ratatui::style::{Modifier, Style};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use event::{Event, EventHandler};
+use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
+use tui::Tui;
+use update::{update, update_mouse, update_paste};
 
 fn main() -> Result<()> {
-    color_eyre::install()?;
-    ratatui::run(|terminal| -> Result<()> {
-        loop {
-            terminal.draw(render)?;
+    let mut app = App::new();
 
-            if event::poll(Duration::from_millis(250))?
-                && let Event::Key(key) = event::read()?
-                && key.kind == KeyEventKind::Press
-                && matches!(key.code, KeyCode::Char('q') | KeyCode::Esc)
-            {
-                return Ok(());
-            }
-        }
-    })?;
+    let backend = CrosstermBackend::new(std::io::stderr());
+    let terminal = Terminal::new(backend)?;
+    let events = EventHandler::new(250);
+    let mut tui = Tui::new(terminal, events);
+    tui.enter()?;
+
+    while !app.should_quit {
+        tui.draw(&mut app)?;
+
+        match tui.events.next()? {
+            Event::Tick => {}
+            Event::Key(key_event) => update(&mut app, key_event),
+            Event::Mouse(mouse_event) => update_mouse(&mut app, mouse_event),
+            Event::Paste(text) => update_paste(&mut app, text),
+            Event::Resize(_, _) => {}
+        };
+    }
+
+    tui.exit()?;
     Ok(())
-}
-
-fn render(frame: &mut ratatui::Frame) {
-    let block = Block::default().title(" agent-tui ").borders(Borders::ALL);
-    let paragraph = Paragraph::new("Hello, agent-tui!\n\nPress q or Esc to quit.")
-        .style(Style::default().add_modifier(Modifier::BOLD))
-        .alignment(Alignment::Center)
-        .block(block);
-    frame.render_widget(paragraph, frame.area());
 }

@@ -53,11 +53,12 @@ These are the features at I view as necessary for moving over my development.
     ```
 1. Format and lint:
     ```bash
-    cargo fmt --all
+    cargo format
     cargo lint
     ```
 1. (Optional) VSCode setup. Open the repo in VSCode and accept the prompt to install the recommended extensions, or run `Extensions: Show Recommended Extensions` from the command palette. The workspace ships with `.vscode/settings.json` that wires up:
-    - `rust-analyzer` as the default formatter for `*.rs` files with format-on-save (uses `rustfmt.toml`).
+    - `rust-analyzer` as the default formatter for `*.rs` files with format-on-save (uses `rustfmt.toml` plus `--config` flags so imports auto-sort, group, and merge — works on stable rustfmt).
+    - `source.organizeImports` on save, so unused imports are removed automatically.
     - `cargo clippy` as the on-save check (`-D warnings`), so lint failures show up in the **Problems** panel and inline via Error Lens.
     - `Even Better TOML` for `Cargo.toml`, `dependi` for crate version hints, and `CodeLLDB` for debugging.
 1. Build and run the release executable:
