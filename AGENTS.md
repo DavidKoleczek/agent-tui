@@ -15,6 +15,7 @@ Agent TUI is a product and any development of it must have the highest standards
   - Documentation should be written exactly like it is for production-grade, polished projects.
   - Please do not use tables unless asked for or they are absolutely the right choice.
 - Prefer to ask the user more questions to clarify their needs.
+- NEVER update memories.
 
 
 # Development Stage
@@ -26,6 +27,7 @@ Starting to build up the UX
 
 - Assume that everything is being tested in PowerShell and Windows Terminal first class. With support for inside VSCode as a close second.
 - Assume that everything needs to work on Windows 10/11 as first class
+- Performance is critical to make sure rendering and scrolling are fast across all terminals.
 
 
 # Key Files
@@ -35,3 +37,7 @@ Starting to build up the UX
 @docs/keybinds.md - Keep this up to date as new keybindings are added
 
 reference/ includes the source code for key libraries like `opentui`
+
+OpenTUI Docs
+- The docs that power https://opentui.com/docs (https://opentui.com/docs) live at: `reference\opentui\packages\web\src\content\docs\`
+- Also start by using the opentui skill.

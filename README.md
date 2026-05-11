@@ -51,3 +51,29 @@ To run:
 ```bash
 bun dev
 ```
+
+To validate changes (typecheck, format, lint):
+
+```bash
+bun run check
+```
+
+To auto-fix formatting and lint issues:
+
+```bash
+bun run fmt
+bun run lint:fix
+```
+
+### Recommended VSCode extensions
+
+Open the repo in VSCode and accept the workspace recommendations, or install manually:
+
+- `oxc.oxc-vscode` for `oxlint` diagnostics and `oxfmt` formatting
+- `EditorConfig.EditorConfig` for `.editorconfig` support
+- `oven.bun-vscode` for the Bun runtime and debugger
+
+### Agent Hooks
+
+`.github/hooks/hooks.json` registers an `agentStop` hook that runs `.github/hooks/agent-stop.ts` after every agent turn. 
+The script runs `bun run fmt`, `bun run lint:fix`, and `bun run check` in order. If any step fails, the hook emits a `block` decision so the failing output is fed back to the agent as a new turn for it to fix before yielding.

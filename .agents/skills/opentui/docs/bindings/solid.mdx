@@ -3,8 +3,8 @@ title: Solid.js
 description: Build terminal UIs with Solid.js and OpenTUI
 order: 1
 skill:
-  entry: true
-  intents: [solid, jsx, signals, hooks, keyboard, animation, testing]
+    entry: true
+    intents: [solid, jsx, signals, hooks, keyboard, animation, testing]
 ---
 
 # Solid.js bindings
@@ -25,10 +25,10 @@ Add JSX config to `tsconfig.json`:
 
 ```json
 {
-  "compilerOptions": {
-    "jsx": "preserve",
-    "jsxImportSource": "@opentui/solid"
-  }
+    "compilerOptions": {
+        "jsx": "preserve",
+        "jsxImportSource": "@opentui/solid"
+    }
 }
 ```
 
@@ -112,8 +112,8 @@ render(() => <App />)
 
 // With renderer config
 render(() => <App />, {
-  targetFps: 30,
-  exitOnCtrlC: false,
+    targetFps: 30,
+    exitOnCtrlC: false,
 })
 ```
 
@@ -197,14 +197,14 @@ import { useRenderer } from "@opentui/solid"
 import { onMount } from "solid-js"
 
 const App = () => {
-  const renderer = useRenderer()
+    const renderer = useRenderer()
 
-  onMount(() => {
-    renderer.console.show()
-    console.log("Hello from console!")
-  })
+    onMount(() => {
+        renderer.console.show()
+        console.log("Hello from console!")
+    })
 
-  return <box />
+    return <box />
 }
 ```
 
@@ -216,15 +216,15 @@ Subscribe to keyboard events.
 import { useKeyboard, useRenderer } from "@opentui/solid"
 
 const App = () => {
-  const renderer = useRenderer()
+    const renderer = useRenderer()
 
-  useKeyboard((key) => {
-    if (key.name === "escape") {
-      renderer.destroy()
-    }
-  })
+    useKeyboard((key) => {
+        if (key.name === "escape") {
+            renderer.destroy()
+        }
+    })
 
-  return <text>Press ESC to close</text>
+    return <text>Press ESC to close</text>
 }
 ```
 
@@ -234,24 +234,24 @@ With release events:
 import { createSignal } from "solid-js"
 
 const App = () => {
-  const [pressedKeys, setPressedKeys] = createSignal(new Set<string>())
+    const [pressedKeys, setPressedKeys] = createSignal(new Set<string>())
 
-  useKeyboard(
-    (event) => {
-      setPressedKeys((keys) => {
-        const newKeys = new Set(keys)
-        if (event.eventType === "release") {
-          newKeys.delete(event.name)
-        } else {
-          newKeys.add(event.name)
-        }
-        return newKeys
-      })
-    },
-    { release: true },
-  )
+    useKeyboard(
+        (event) => {
+            setPressedKeys((keys) => {
+                const newKeys = new Set(keys)
+                if (event.eventType === "release") {
+                    newKeys.delete(event.name)
+                } else {
+                    newKeys.add(event.name)
+                }
+                return newKeys
+            })
+        },
+        { release: true },
+    )
 
-  return <text>Pressed: {Array.from(pressedKeys()).join(", ") || "none"}</text>
+    return <text>Pressed: {Array.from(pressedKeys()).join(", ") || "none"}</text>
 }
 ```
 
@@ -263,11 +263,11 @@ Handle terminal resize events.
 import { onResize } from "@opentui/solid"
 
 const App = () => {
-  onResize((width, height) => {
-    console.log(`Resized to ${width}x${height}`)
-  })
+    onResize((width, height) => {
+        console.log(`Resized to ${width}x${height}`)
+    })
 
-  return <text>Resize-aware component</text>
+    return <text>Resize-aware component</text>
 }
 ```
 
@@ -279,11 +279,11 @@ Run side effects when the terminal window gains focus.
 import { onFocus } from "@opentui/solid"
 
 const App = () => {
-  onFocus(() => {
-    console.log("Terminal focused")
-  })
+    onFocus(() => {
+        console.log("Terminal focused")
+    })
 
-  return <text>Switch away and back to trigger focus events</text>
+    return <text>Switch away and back to trigger focus events</text>
 }
 ```
 
@@ -295,11 +295,11 @@ Run side effects when the terminal window loses focus.
 import { onBlur } from "@opentui/solid"
 
 const App = () => {
-  onBlur(() => {
-    console.log("Terminal blurred")
-  })
+    onBlur(() => {
+        console.log("Terminal blurred")
+    })
 
-  return <text>Switch away and back to trigger blur events</text>
+    return <text>Switch away and back to trigger blur events</text>
 }
 ```
 
@@ -313,13 +313,13 @@ Get reactive terminal dimensions (returns a Solid signal).
 import { useTerminalDimensions } from "@opentui/solid"
 
 const App = () => {
-  const dimensions = useTerminalDimensions()
+    const dimensions = useTerminalDimensions()
 
-  return (
-    <text>
-      Terminal: {dimensions().width}x{dimensions().height}
-    </text>
-  )
+    return (
+        <text>
+            Terminal: {dimensions().width}x{dimensions().height}
+        </text>
+    )
 }
 ```
 
@@ -333,11 +333,11 @@ import { usePaste } from "@opentui/solid"
 const textDecoder = new TextDecoder()
 
 const App = () => {
-  usePaste((event) => {
-    console.log("Pasted:", textDecoder.decode(event.bytes))
-  })
+    usePaste((event) => {
+        console.log("Pasted:", textDecoder.decode(event.bytes))
+    })
 
-  return <text>Paste something!</text>
+    return <text>Paste something!</text>
 }
 ```
 
@@ -349,11 +349,11 @@ Handle text selection events.
 import { useSelectionHandler } from "@opentui/solid"
 
 const App = () => {
-  useSelectionHandler((selection) => {
-    console.log("Selected:", selection)
-  })
+    useSelectionHandler((selection) => {
+        console.log("Selected:", selection)
+    })
 
-  return <text selectable>Select me!</text>
+    return <text selectable>Select me!</text>
 }
 ```
 
@@ -366,28 +366,28 @@ import { useTimeline } from "@opentui/solid"
 import { createSignal, onMount } from "solid-js"
 
 const App = () => {
-  const [width, setWidth] = createSignal(0)
+    const [width, setWidth] = createSignal(0)
 
-  const timeline = useTimeline({
-    duration: 2000,
-    loop: false,
-  })
-
-  onMount(() => {
-    timeline.add(
-      { width: width() },
-      {
-        width: 50,
+    const timeline = useTimeline({
         duration: 2000,
-        ease: "linear",
-        onUpdate: (animation) => {
-          setWidth(animation.targets[0].width)
-        },
-      },
-    )
-  })
+        loop: false,
+    })
 
-  return <box style={{ width: width(), backgroundColor: "#6a5acd" }} />
+    onMount(() => {
+        timeline.add(
+            { width: width() },
+            {
+                width: 50,
+                duration: 2000,
+                ease: "linear",
+                onUpdate: (animation) => {
+                    setWidth(animation.targets[0].width)
+                },
+            },
+        )
+    })
+
+    return <box style={{ width: width(), backgroundColor: "#6a5acd" }} />
 }
 ```
 
@@ -401,16 +401,16 @@ Render children into a different mount point (useful for modals and overlays).
 import { Portal, useRenderer } from "@opentui/solid"
 
 const App = () => {
-  const renderer = useRenderer()
+    const renderer = useRenderer()
 
-  return (
-    <box>
-      <text>Main content</text>
-      <Portal mount={renderer.root}>
-        <box border>Overlay</box>
-      </Portal>
-    </box>
-  )
+    return (
+        <box>
+            <text>Main content</text>
+            <Portal mount={renderer.root}>
+                <box border>Overlay</box>
+            </Portal>
+        </box>
+    )
 }
 ```
 
@@ -423,9 +423,9 @@ import { Dynamic } from "@opentui/solid"
 import { createSignal } from "solid-js"
 
 const App = () => {
-  const [isMultiline, setIsMultiline] = createSignal(false)
+    const [isMultiline, setIsMultiline] = createSignal(false)
 
-  return <Dynamic component={isMultiline() ? "textarea" : "input"} />
+    return <Dynamic component={isMultiline() ? "textarea" : "input"} />
 }
 ```
 
@@ -437,10 +437,10 @@ Use [Bun.build](https://bun.sh/docs/bundler) with the Solid plugin:
 import solidPlugin from "@opentui/solid/bun-plugin"
 
 await Bun.build({
-  entrypoints: ["./index.tsx"],
-  target: "bun",
-  outdir: "./build",
-  plugins: [solidPlugin],
+    entrypoints: ["./index.tsx"],
+    target: "bun",
+    outdir: "./build",
+    plugins: [solidPlugin],
 })
 ```
 
@@ -448,12 +448,12 @@ To compile to a standalone executable:
 
 ```ts
 await Bun.build({
-  entrypoints: ["./index.tsx"],
-  plugins: [solidPlugin],
-  compile: {
-    target: "bun-darwin-arm64",
-    outfile: "./app-macos",
-  },
+    entrypoints: ["./index.tsx"],
+    plugins: [solidPlugin],
+    compile: {
+        target: "bun-darwin-arm64",
+        outfile: "./app-macos",
+    },
 })
 ```
 
@@ -466,21 +466,21 @@ import { render, useKeyboard, useRenderer } from "@opentui/solid"
 import { createSignal } from "solid-js"
 
 const App = () => {
-  const [count, setCount] = createSignal(0)
-  const renderer = useRenderer()
+    const [count, setCount] = createSignal(0)
+    const renderer = useRenderer()
 
-  useKeyboard((key) => {
-    if (key.name === "up") setCount((c) => c + 1)
-    if (key.name === "down") setCount((c) => c - 1)
-    if (key.name === "escape") renderer.destroy()
-  })
+    useKeyboard((key) => {
+        if (key.name === "up") setCount((c) => c + 1)
+        if (key.name === "down") setCount((c) => c - 1)
+        if (key.name === "escape") renderer.destroy()
+    })
 
-  return (
-    <box border padding={2}>
-      <text>Count: {count()}</text>
-      <text fg="#888">Up/Down to change, ESC to close</text>
-    </box>
-  )
+    return (
+        <box border padding={2}>
+            <text>Count: {count()}</text>
+            <text fg="#888">Up/Down to change, ESC to close</text>
+        </box>
+    )
 }
 
 render(App)
