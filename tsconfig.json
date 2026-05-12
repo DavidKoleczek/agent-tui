@@ -22,6 +22,10 @@
         "noUncheckedIndexedAccess": true,
         "noImplicitOverride": true,
 
+        // Explicit type roots so VSCode's TS server matches the CLI's auto-include
+        // behavior. Bun's types transitively pull in @types/node for Buffer, process, etc.
+        "types": ["bun"],
+
         // Some stricter flags (disabled by default)
         "noUnusedLocals": false,
         "noUnusedParameters": false,

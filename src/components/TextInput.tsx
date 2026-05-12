@@ -8,10 +8,16 @@ interface TextInputProps {
 
 const MAX_VISIBLE_ROWS = 10
 
-// Override the textarea default (Enter -> newline). Newlines only via wrap or paste.
-const SUBMIT_KEY_BINDINGS = [
+// Plain Enter submits user message.
+// Shift+Enter, Ctrl+Enter, and Alt+Enter insert a newline when the terminal sends a distinct sequence
+// (CSI u, modifyOtherKeys, or the classic ESC+CR encoding for meta+return).
+// Without that, terminals collapse every Enter variant to "\r" and only plain submit applies.
+const KEY_BINDINGS = [
     { name: "return", action: "submit" as const },
     { name: "linefeed", action: "submit" as const },
+    { name: "return", shift: true, action: "newline" as const },
+    { name: "return", ctrl: true, action: "newline" as const },
+    { name: "return", meta: true, action: "newline" as const },
 ]
 
 export function TextInput({ placeholder, onSubmit }: TextInputProps) {
@@ -48,7 +54,7 @@ export function TextInput({ placeholder, onSubmit }: TextInputProps) {
                 focused
                 placeholder={placeholder}
                 wrapMode="word"
-                keyBindings={SUBMIT_KEY_BINDINGS}
+                keyBindings={KEY_BINDINGS}
                 onSubmit={handleSubmit}
                 width="100%"
                 maxHeight={MAX_VISIBLE_ROWS}

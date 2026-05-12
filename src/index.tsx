@@ -2,6 +2,7 @@ import { createCliRenderer } from "@opentui/core"
 import { createRoot } from "@opentui/react"
 import { useState } from "react"
 import { TextInput } from "./components/TextInput"
+import { installVSCodeInputShims } from "./lib/vscode-shift-enter"
 
 function App() {
     const [submitted, setSubmitted] = useState("")
@@ -21,4 +22,5 @@ function App() {
 }
 
 const renderer = await createCliRenderer()
+installVSCodeInputShims()
 createRoot(renderer).render(<App />)

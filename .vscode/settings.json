@@ -19,5 +19,26 @@
     },
     "[typescriptreact]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
-    }
+    },
+    // Skip FS change events for the vendored reference sources; they never need to trigger reloads.
+    "files.watcherExclude": {
+        "**/reference/**": true
+    },
+    // Keep workspace search focused on first-party code only.
+    "search.exclude": {
+        "reference": true
+    },
+    // Don't auto-create tsc build/watch tasks from the many nested tsconfigs under reference/.
+    "js/ts.tsc.autoDetect": "off",
+    // Prevent auto-import suggestions from pulling symbols out of the reference sources.
+    "js/ts.preferences.autoImportFileExcludePatterns": ["**/reference/**"],
+    // Avoid scanning package.json files in nested reference projects for auto-import candidates.
+    "js/ts.preferences.includePackageJsonAutoImports": "off",
+    // Disable the tsconfig JSON schema for reference tsconfigs so missing types (e.g. "three") aren't flagged.
+    "json.schemas": [
+        {
+            "fileMatch": ["reference/**/tsconfig*.json"],
+            "schema": {}
+        }
+    ]
 }
