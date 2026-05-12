@@ -15,7 +15,7 @@ Agent TUI is a product and any development of it must have the highest standards
   - Documentation should be written exactly like it is for production-grade, polished projects.
   - Please do not use tables unless asked for or they are absolutely the right choice.
 - Prefer to ask the user more questions to clarify their needs.
-- NEVER update memories.
+- NEVER store or update memories.
 
 
 # Development Stage
@@ -34,9 +34,10 @@ Starting to build up the UX
 
 @README.md
 
-@docs/keybinds.md - Keep this up to date as new keybindings are added
-
-reference/ includes the source code for key libraries like `opentui`
+reference/ includes the source code for key libraries as a reference:
+- `opentui`
+- `opencode`
+- `awesome-opentui`
 
 OpenTUI Docs
 - The docs that power https://opentui.com/docs (https://opentui.com/docs) live at: `reference\opentui\packages\web\src\content\docs\`

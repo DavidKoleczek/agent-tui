@@ -1,13 +1,21 @@
-import { createCliRenderer, TextAttributes } from "@opentui/core"
+import { createCliRenderer } from "@opentui/core"
 import { createRoot } from "@opentui/react"
+import { useState } from "react"
+import { TextInput } from "./components/TextInput"
 
 function App() {
+    const [submitted, setSubmitted] = useState("")
+
     return (
-        <box alignItems="center" justifyContent="center" flexGrow={1}>
-            <box justifyContent="center" alignItems="flex-end">
-                <ascii-font font="tiny" text="OpenTUI" />
-                <text attributes={TextAttributes.DIM}>What will you build?</text>
+        <box flexDirection="column" flexGrow={1}>
+            <box flexGrow={1} alignItems="center" justifyContent="center">
+                {submitted.length > 0 && (
+                    <box border borderStyle="rounded" padding={1}>
+                        <text>{submitted}</text>
+                    </box>
+                )}
             </box>
+            <TextInput onSubmit={setSubmitted} />
         </box>
     )
 }

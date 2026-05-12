@@ -77,3 +77,13 @@ Open the repo in VSCode and accept the workspace recommendations, or install man
 
 `.github/hooks/hooks.json` registers an `agentStop` hook that runs `.github/hooks/agent-stop.ts` after every agent turn. 
 The script runs `bun run fmt`, `bun run lint:fix`, and `bun run check` in order. If any step fails, the hook emits a `block` decision so the failing output is fed back to the agent as a new turn for it to fix before yielding.
+
+
+## Todos
+
+- Input box - shift enter for new line
+- Paste shortening
+- CTRL-C to Clear
+- Double CTRL-C to exit
+- Figure out builds
+
