@@ -32,6 +32,7 @@ These are the features at I view as necessary for moving over my development.
 - Infinite chat by default
 - Good plan mode
   - Summarizes plan, but gives a link to the full plan
+  - Critique of plans with other model
 - Verifier "mode" - define criteria, and it iterates until its done
 - Ability to use ! to send commands
 - Teacher mode - does not implement, but instead explains.
@@ -120,8 +121,5 @@ The script runs `bun run fmt`, `bun run lint:fix`, and `bun run check` in order.
 
 ## Todos
 
-- Paste shortening
-- CTRL-C to Clear
-- Double CTRL-C to exit
 - Figure out builds
 

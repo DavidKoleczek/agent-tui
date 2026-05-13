@@ -1,16 +1,22 @@
 import { type TextareaRenderable } from "@opentui/core"
-import { useRef } from "react"
+import { type Ref, useImperativeHandle, useRef } from "react"
+import { usePasteShortening } from "./use-paste-shortening"
+
+export interface TextInputHandle {
+    clear: () => void
+    isEmpty: () => boolean
+}
 
 interface TextInputProps {
     placeholder?: string
     onSubmit: (value: string) => void
+    ref?: Ref<TextInputHandle>
 }
 
 const MAX_VISIBLE_ROWS = 10
 
 // Plain Enter submits user message.
 // Shift+Enter, Ctrl+Enter, and Alt+Enter insert a newline when the terminal sends a distinct sequence
-// (CSI u, modifyOtherKeys, or the classic ESC+CR encoding for meta+return).
 // Without that, terminals collapse every Enter variant to "\r" and only plain submit applies.
 const KEY_BINDINGS = [
     { name: "return", action: "submit" as const },
@@ -20,16 +26,35 @@ const KEY_BINDINGS = [
     { name: "return", meta: true, action: "newline" as const },
 ]
 
-export function TextInput({ placeholder, onSubmit }: TextInputProps) {
+export function TextInput({ placeholder, onSubmit, ref }: TextInputProps) {
     const textareaRef = useRef<TextareaRenderable | null>(null)
+    const paste = usePasteShortening(textareaRef)
+
+    // Lets the parent drive Ctrl+C clear-then-exit without exposing the textarea ref or lifting the textarea's text into React state.
+    useImperativeHandle(
+        ref,
+        () => ({
+            clear: () => {
+                textareaRef.current?.setText("")
+                paste.reset()
+            },
+            isEmpty: () => {
+                const textarea = textareaRef.current
+                if (!textarea) return true
+                return textarea.plainText.length === 0
+            },
+        }),
+        [paste.reset],
+    )
 
     const handleSubmit = () => {
         const textarea = textareaRef.current
         if (!textarea) return
-        const value = textarea.plainText
+        const value = paste.expand()
         if (value.length === 0) return
         onSubmit(value)
         textarea.setText("")
+        paste.reset()
     }
 
     return (
@@ -56,6 +81,7 @@ export function TextInput({ placeholder, onSubmit }: TextInputProps) {
                 wrapMode="word"
                 keyBindings={KEY_BINDINGS}
                 onSubmit={handleSubmit}
+                onPaste={paste.onPaste}
                 width="100%"
                 maxHeight={MAX_VISIBLE_ROWS}
             />
