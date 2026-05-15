@@ -1,3 +1,7 @@
+import { type ScrollBoxRenderable } from "@opentui/core"
+import { useBindings } from "@opentui/keymap/react"
+import { useRef } from "react"
+import { activityLogBindings } from "../../lib/keybindings"
 import { type Activity } from "../../schemas/activities"
 
 interface ActivityLogProps {
@@ -5,8 +9,31 @@ interface ActivityLogProps {
 }
 
 export function ActivityLog({ activities }: ActivityLogProps) {
+    const scrollRef = useRef<ScrollBoxRenderable | null>(null)
+
+    useBindings(
+        () =>
+            activityLogBindings({
+                scrollByViewport: (direction) => scrollRef.current?.scrollBy(direction, "viewport"),
+            }),
+        [],
+    )
+
     return (
-        <box flexDirection="column" flexGrow={1} width="100%">
+        <scrollbox
+            // Disable focusability so input focus stays pinned to the textarea
+            // Scroll-wheel scrolling does not require focus and the keymap layer above drives keyboard scrolling without going through focus.
+            ref={(node: ScrollBoxRenderable | null) => {
+                scrollRef.current = node
+                if (node) node.focusable = false
+            }}
+            flexGrow={1}
+            flexShrink={1}
+            width="100%"
+            stickyScroll
+            stickyStart="bottom"
+            viewportCulling
+        >
             {activities.map((activity) => {
                 switch (activity.type) {
                     case "user":
@@ -23,6 +50,6 @@ export function ActivityLog({ activities }: ActivityLogProps) {
                     }
                 }
             })}
-        </box>
+        </scrollbox>
     )
 }

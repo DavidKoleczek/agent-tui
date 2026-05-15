@@ -1,10 +1,59 @@
 ---
-name: reference-repos
-description: Clone or update the reference repositories under reference/.
+name: update-dependencies
+description: Updates project dependencies, validates them, and then updates the reference repositories under reference/.
 disable-model-invocation: true
 ---
 
-# Reference Repos Skill
+When this command is invoked, run the following two sections to make sure the project is up to date and ready for development.
+
+# Project Dependency Update
+
+NOTE: Bash should be (nearly) identical.
+
+1. Make sure the current lockfile and checks pass
+```powershell
+bun install --frozen-lockfile
+bun run check
+```
+
+2. Discover and audit outdated dependencies
+```powershell
+bun outdated
+bun audit
+```
+
+3. Bump caret-ranged dependencies.
+```powershell
+bun update
+```
+
+4. Bump the OpenTUI trio (exact, all three together).
+```powershell
+bun add -E @opentui/core@<v> @opentui/keymap@<v> @opentui/react@<v>
+```
+
+5. Bump oxlint and/or oxfmt (exact).
+```powershell
+bun add -d -E oxlint@<v>
+bun add -d -E oxfmt@<v>
+```
+
+6. Validate
+```powershell
+bun install --frozen-lockfile
+bun run check
+bun audit
+```
+
+7. Update the user
+- If at any point something major changes or there are a lot of new issues, pause and alert the user.
+  - Do some due dilligence for the user so they understand factually what happened, such as by exploring the source code and going to release notes:
+    - OpenTUI: https://github.com/anomalyco/opentui/releases
+    - oxlint and oxfmt: https://github.com/oxc-project/oxc/releases
+- Do not update to major versions, like from 0.x to 1.x or 5.x to 6.x. Instead raise those to the user and they will decide.
+
+
+# Reference Repos Update
 
 Keeps `reference/<repo>` in sync with the upstream version this project depends on. Run all commands from the repo root. All clones are shallow (`--depth 1 --single-branch`).
 
@@ -13,7 +62,7 @@ Repos:
 - `reference/opencode` from https://github.com/anomalyco/opencode at branch `dev` (the default; no `main` exists).
 - `reference/awesome-opentui` from https://github.com/msmps/awesome-opentui at branch `main`.
 
-## opentui
+### opentui
 
 PowerShell:
 
@@ -44,7 +93,7 @@ if [ "$current" != "$tag" ]; then
 fi
 ```
 
-## Other Repos
+### Other Repos
 
 PowerShell:
 
