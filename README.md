@@ -40,6 +40,7 @@ These are the features at I view as necessary for moving over my development.
 - Continual chat title refinement
 - Integration with different apps (like Fusion) - App interaction protocol
 - VSCode integration
+- /messages - Dumps the current state/history that would be used for the next message being sent to the model into a temp file that is linked.
 
 
 ## Installation
@@ -79,6 +80,12 @@ Save and restart Windows Terminal or open a new tab.
 
 
 ## Development
+
+### Prerequisites
+
+- [bun](https://github.com/oven-sh/bun)
+
+### Install
 
 To install dependencies:
 

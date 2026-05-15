@@ -1,0 +1,87 @@
+import { fraction, nowIso } from "../../lib/branded-types"
+import { type Activity } from "../../schemas/activities"
+
+export const sampleActivities: readonly Activity[] = [
+    {
+        id: "u-1",
+        type: "user",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content: "How does the activity log component work right now?",
+    },
+    {
+        id: "r-1",
+        type: "reasoning",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content: "Read the ActivityLog source and the schema it consumes before answering.",
+    },
+    {
+        id: "t-1",
+        type: "tool",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        toolName: "read",
+        toolArguments: { path: "src/components/ActivityLog/index.tsx" },
+        toolOutput: "export function ActivityLog({ activities }: ActivityLogProps) { ... }",
+    },
+    {
+        id: "a-1",
+        type: "assistant",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content:
+            "ActivityLog takes a readonly Activity[] and renders one row per item. Each row is a single text node chosen by switching on activity.type, so user, reasoning, tool, and assistant variants get their own format.\n\nIt is intentionally stateless. Scroll, focus, and selection all live above it, which keeps the schema decoupled from view concerns.",
+    },
+    {
+        id: "u-2",
+        type: "user",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content: "Where are the activity types defined and how is progress modeled?",
+    },
+    {
+        id: "r-2",
+        type: "reasoning",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content:
+            "The schema sits under src/schemas/activities. Progress lives on ActivityBase as a Fraction in [0, 1].\n\nFraction is a branded number constructed via fraction(value), so consumers cannot accidentally pass a raw number. 0 means not started or in flight, 1 means complete. There is no separate indeterminate state right now.",
+    },
+    {
+        id: "t-2",
+        type: "tool",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        toolName: "grep",
+        toolArguments: { pattern: "Fraction", path: "src" },
+        toolOutput:
+            "src/lib/branded-types.ts: export type Fraction = number & { readonly __brand: 'Fraction' }\nsrc/schemas/activities/types.ts: progress: Fraction",
+    },
+    {
+        id: "t-3",
+        type: "tool",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        toolName: "read",
+        toolArguments: { path: "src/lib/branded-types.ts" },
+        toolOutput:
+            "export type IsoTimestamp = string & { readonly __brand: 'IsoTimestamp' }\nexport function nowIso(): IsoTimestamp { ... }\nexport type Fraction = number & { readonly __brand: 'Fraction' }\nexport function fraction(value: number): Fraction { ... }",
+    },
+    {
+        id: "a-2",
+        type: "assistant",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content:
+            "The schema lives in src/schemas/activities/types.ts. ActivityBase carries id, createdAt as an IsoTimestamp, and progress as a Fraction. Each variant extends the base and adds its own discriminator and payload.\n\nIsoTimestamp and Fraction are both branded types from src/lib/branded-types.ts. The brand is a phantom field, so it costs nothing at runtime, but it forces every callsite through nowIso and fraction. That gives you one place to add validation, one place to swap in zod later, and a clear signal at the type level that the value is not just any string or number.\n\nIf you decide to add streaming deltas or parallel tool calls, ActivityBase is also the right place to add a seq field as a tiebreaker for collisions on createdAt.",
+    },
+    {
+        id: "a-3",
+        type: "assistant",
+        createdAt: nowIso(),
+        progress: fraction(0.4),
+        content:
+            "Drafting a small factory module next so TextInput.onSubmit can push a real UserActivity without callers reaching into the schema directly. Will keep it in src/schemas/activities/factories.ts so the construction",
+    },
+]
