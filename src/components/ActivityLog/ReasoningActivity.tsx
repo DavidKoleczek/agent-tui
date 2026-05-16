@@ -1,4 +1,4 @@
-import { getMarkdownSyntaxStyle } from "../../lib/syntax-style"
+import { getReasoningMarkdownSyntaxStyle } from "../../lib/syntax-style"
 
 interface ReasoningActivityProps {
     content: string
@@ -9,11 +9,11 @@ const TEXT_COLOR = "#888888"
 
 export function ReasoningActivity({ content, index }: ReasoningActivityProps) {
     return (
-        <box paddingLeft={2} marginTop={index === 0 ? 0 : 1} flexDirection="column" flexShrink={0}>
-            <code
+        <box paddingLeft={2} marginTop={index === 0 ? 0 : 1} flexShrink={0}>
+            <markdown
                 content={`_Thinking:_ ${content.trim()}`}
-                filetype="markdown"
-                syntaxStyle={getMarkdownSyntaxStyle()}
+                syntaxStyle={getReasoningMarkdownSyntaxStyle()}
+                internalBlockMode="top-level"
                 fg={TEXT_COLOR}
             />
         </box>

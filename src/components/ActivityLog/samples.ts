@@ -16,7 +16,7 @@ export const sampleActivities: readonly Activity[] = [
         createdAt: nowIso(),
         state: "complete",
         progress: fraction(1),
-        content: "Read the ActivityLog source and the schema it consumes before answering.",
+        content: "Read the `ActivityLog` source and the schema it consumes before answering.",
     },
     {
         id: "t-1",
@@ -59,8 +59,12 @@ It is **intentionally stateless**. Scroll, focus, and selection all live above i
         createdAt: nowIso(),
         state: "complete",
         progress: fraction(1),
-        content:
-            "The schema sits under src/schemas/activities. Progress lives on ActivityBase as a Fraction in [0, 1].\n\nFraction is a branded number constructed via fraction(value), so consumers cannot accidentally pass a raw number. 0 means not started or in flight, 1 means complete. Lifecycle is now tracked separately on ActivityBase.state, which is the primary signal; progress is a finer-grained complement.",
+        content: `The schema sits under \`src/schemas/activities\`. Two things to confirm:
+
+- \`progress\` is a **Fraction** in [0, 1], constructed via \`fraction(value)\` so callers cannot pass a raw number.
+- \`state\` on \`ActivityBase\` is the *primary* lifecycle signal; \`progress\` is a finer-grained complement.
+
+0 means not started or in flight, 1 means complete.`,
     },
     {
         id: "t-2",
