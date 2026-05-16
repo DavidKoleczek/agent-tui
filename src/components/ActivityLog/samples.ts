@@ -6,6 +6,7 @@ export const sampleActivities: readonly Activity[] = [
         id: "u-1",
         type: "user",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content: "How does the activity log component work right now?",
     },
@@ -13,6 +14,7 @@ export const sampleActivities: readonly Activity[] = [
         id: "r-1",
         type: "reasoning",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content: "Read the ActivityLog source and the schema it consumes before answering.",
     },
@@ -20,6 +22,7 @@ export const sampleActivities: readonly Activity[] = [
         id: "t-1",
         type: "tool",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         toolName: "read",
         toolArguments: { path: "src/components/ActivityLog/index.tsx" },
@@ -29,6 +32,7 @@ export const sampleActivities: readonly Activity[] = [
         id: "a-1",
         type: "assistant",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content: `## How \`ActivityLog\` works
 
@@ -45,6 +49,7 @@ It is **intentionally stateless**. Scroll, focus, and selection all live above i
         id: "u-2",
         type: "user",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content: "Where are the activity types defined and how is progress modeled?",
     },
@@ -52,14 +57,16 @@ It is **intentionally stateless**. Scroll, focus, and selection all live above i
         id: "r-2",
         type: "reasoning",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content:
-            "The schema sits under src/schemas/activities. Progress lives on ActivityBase as a Fraction in [0, 1].\n\nFraction is a branded number constructed via fraction(value), so consumers cannot accidentally pass a raw number. 0 means not started or in flight, 1 means complete. There is no separate indeterminate state right now.",
+            "The schema sits under src/schemas/activities. Progress lives on ActivityBase as a Fraction in [0, 1].\n\nFraction is a branded number constructed via fraction(value), so consumers cannot accidentally pass a raw number. 0 means not started or in flight, 1 means complete. Lifecycle is now tracked separately on ActivityBase.state, which is the primary signal; progress is a finer-grained complement.",
     },
     {
         id: "t-2",
         type: "tool",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         toolName: "grep",
         toolArguments: { pattern: "Fraction", path: "src" },
@@ -70,6 +77,7 @@ It is **intentionally stateless**. Scroll, focus, and selection all live above i
         id: "t-3",
         type: "tool",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         toolName: "read",
         toolArguments: { path: "src/lib/branded-types.ts" },
@@ -80,6 +88,7 @@ It is **intentionally stateless**. Scroll, focus, and selection all live above i
         id: "a-2",
         type: "assistant",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content: `## Activity schema
 
@@ -100,6 +109,7 @@ interface ToolActivity extends ActivityBase {
         id: "u-3",
         type: "user",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content: "Can you summarize what each file owns and what is still pending?",
     },
@@ -107,6 +117,7 @@ interface ToolActivity extends ActivityBase {
         id: "a-4",
         type: "assistant",
         createdAt: nowIso(),
+        state: "complete",
         progress: fraction(1),
         content: `# Component map
 
@@ -150,6 +161,7 @@ To show a literal asterisk in prose, escape it with a backslash: \\*not italic\\
         id: "a-3",
         type: "assistant",
         createdAt: nowIso(),
+        state: "in_progress",
         progress: fraction(0.4),
         content: `**Next:** drafting a small factory module so \`TextInput.onSubmit\` can push a real \`UserActivity\` without callers reaching into the schema directly.
 

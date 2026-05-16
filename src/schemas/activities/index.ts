@@ -1,1 +1,1 @@
-export type { Activity } from "./types"
+export type { Activity, ActivityState } from "./types"

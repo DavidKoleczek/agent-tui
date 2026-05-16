@@ -1,9 +1,13 @@
 import { type Fraction, type IsoTimestamp } from "../../lib/branded-types"
 
+export type ActivityState = "in_progress" | "complete" | "error" | "cancelled"
+
 export interface ActivityBase {
     id: string
     createdAt: IsoTimestamp
-    /** progress in [0, 1]. 0 means not started or in progress, 1 means complete. */
+    /** Primary lifecycle signal. Renderers and downstream logic should branch on this. */
+    state: ActivityState
+    /** Fine-grained complement to `state` for continuous indicators while `state` is `"in_progress"`. 0 means no progress and 1 means done. */
     progress: Fraction
 }
 
