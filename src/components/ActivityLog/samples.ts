@@ -30,8 +30,16 @@ export const sampleActivities: readonly Activity[] = [
         type: "assistant",
         createdAt: nowIso(),
         progress: fraction(1),
-        content:
-            "ActivityLog takes a readonly Activity[] and renders one row per item. Each row is a single text node chosen by switching on activity.type, so user, reasoning, tool, and assistant variants get their own format.\n\nIt is intentionally stateless. Scroll, focus, and selection all live above it, which keeps the schema decoupled from view concerns.",
+        content: `## How \`ActivityLog\` works
+
+\`ActivityLog\` takes a \`readonly Activity[]\` and renders one row per item. Each row is chosen by switching on \`activity.type\`, so each variant gets its own component:
+
+- \`user\` -> \`UserActivity\`
+- \`reasoning\` -> \`ReasoningActivity\`
+- \`tool\` -> \`ToolActivity\`
+- \`assistant\` -> \`AssistantActivity\`
+
+It is **intentionally stateless**. Scroll, focus, and selection all live above it, which keeps the schema decoupled from view concerns.`,
     },
     {
         id: "u-2",
@@ -73,15 +81,28 @@ export const sampleActivities: readonly Activity[] = [
         type: "assistant",
         createdAt: nowIso(),
         progress: fraction(1),
-        content:
-            "The schema lives in src/schemas/activities/types.ts. ActivityBase carries id, createdAt as an IsoTimestamp, and progress as a Fraction. Each variant extends the base and adds its own discriminator and payload.\n\nIsoTimestamp and Fraction are both branded types from src/lib/branded-types.ts. The brand is a phantom field, so it costs nothing at runtime, but it forces every callsite through nowIso and fraction. That gives you one place to add validation, one place to swap in zod later, and a clear signal at the type level that the value is not just any string or number.\n\nIf you decide to add streaming deltas or parallel tool calls, ActivityBase is also the right place to add a seq field as a tiebreaker for collisions on createdAt.",
+        content: `## Activity schema
+
+The schema lives in \`src/schemas/activities/types.ts\`. \`ActivityBase\` carries \`id\`, \`createdAt\` (\`IsoTimestamp\`), and \`progress\` (\`Fraction\` in \`[0, 1]\`). Each variant extends the base:
+
+\`\`\`ts
+interface ToolActivity extends ActivityBase {
+    type: "tool"
+    toolName: string
+    toolArguments: Record<string, unknown>
+    toolOutput: string
+}
+\`\`\`
+
+\`IsoTimestamp\` and \`Fraction\` are *branded types* from \`src/lib/branded-types.ts\`. The brand is a **phantom field**, so it costs nothing at runtime but forces every callsite through \`nowIso\` and \`fraction\`.`,
     },
     {
         id: "a-3",
         type: "assistant",
         createdAt: nowIso(),
         progress: fraction(0.4),
-        content:
-            "Drafting a small factory module next so TextInput.onSubmit can push a real UserActivity without callers reaching into the schema directly. Will keep it in src/schemas/activities/factories.ts so the construction",
+        content: `**Next:** drafting a small factory module so \`TextInput.onSubmit\` can push a real \`UserActivity\` without callers reaching into the schema directly.
+
+Will keep it in \`src/schemas/activities/factories.ts\` so the construction`,
     },
 ]

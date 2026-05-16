@@ -3,6 +3,10 @@ import { useBindings } from "@opentui/keymap/react"
 import { useRef } from "react"
 import { activityLogBindings } from "../../lib/keybindings"
 import { type Activity } from "../../schemas/activities"
+import { AssistantActivity } from "./AssistantActivity"
+import { ReasoningActivity } from "./ReasoningActivity"
+import { ToolActivity } from "./ToolActivity"
+import { UserActivity } from "./UserActivity"
 
 interface ActivityLogProps {
     activities: readonly Activity[]
@@ -34,16 +38,24 @@ export function ActivityLog({ activities }: ActivityLogProps) {
             stickyStart="bottom"
             viewportCulling
         >
-            {activities.map((activity) => {
+            {activities.map((activity, index) => {
                 switch (activity.type) {
                     case "user":
-                        return <text key={activity.id}>{`> ${activity.content}`}</text>
+                        return <UserActivity key={activity.id} index={index} content={activity.content} />
                     case "reasoning":
-                        return <text key={activity.id}>{`(reasoning) ${activity.content}`}</text>
+                        return <ReasoningActivity key={activity.id} index={index} content={activity.content} />
                     case "tool":
-                        return <text key={activity.id}>{`[tool: ${activity.toolName}] ${activity.toolOutput}`}</text>
+                        return (
+                            <ToolActivity
+                                key={activity.id}
+                                index={index}
+                                toolName={activity.toolName}
+                                toolArguments={activity.toolArguments}
+                                toolOutput={activity.toolOutput}
+                            />
+                        )
                     case "assistant":
-                        return <text key={activity.id}>{activity.content}</text>
+                        return <AssistantActivity key={activity.id} index={index} content={activity.content} />
                     default: {
                         const _exhaustive: never = activity
                         return _exhaustive

@@ -4,7 +4,7 @@ Agent TUI is a product and any development of it must have the highest standards
 
 - Shortcuts are not appropriate. When in doubt, you must work with the user for guidance.
 - Any documentation you write, including in the README.md, should be clear, concise, and accurate like the official documentation of other production-grade applications.
-- Don't generate characters that a user could not type on a standard keyboard like fancy arrows.
+- Don't generate characters that a user could not type on a standard keyboard like fancy arrows within regular code or documentation.
 - Any *new* comments should be necessary (do not driveby remove existing comments). A necessary comment captures intent that cannot be encoded in names, types, or structure. They should concisely describe the "why", only used to record rationale, trade-offs, links to specs/papers, or non-obvious domain insights. They should add signal that code cannot.
 - Prefer "soft-wrap" for prose comments. Split up lines at natural breaking points at around 120 characters. Hard wraps tend to break mid-clause and look mechanical, and they create noisy diffs whenever the prose changes. Generally keep your comments in the style of the others in the project.
 - The current code in the package should be treated as an example of high quality code. Make sure to follow its style and tackle issues in similar ways where appropriate.
