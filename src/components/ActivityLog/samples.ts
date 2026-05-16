@@ -97,6 +97,56 @@ interface ToolActivity extends ActivityBase {
 \`IsoTimestamp\` and \`Fraction\` are *branded types* from \`src/lib/branded-types.ts\`. The brand is a **phantom field**, so it costs nothing at runtime but forces every callsite through \`nowIso\` and \`fraction\`.`,
     },
     {
+        id: "u-3",
+        type: "user",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content: "Can you summarize what each file owns and what is still pending?",
+    },
+    {
+        id: "a-4",
+        type: "assistant",
+        createdAt: nowIso(),
+        progress: fraction(1),
+        content: `# Component map
+
+## File responsibilities
+
+Here is a quick map of which files own what:
+
+| File | Role |
+| --- | --- |
+| \`src/lib/branded-types.ts\` | Brand definitions: \`IsoTimestamp\`, \`Fraction\` |
+| \`src/schemas/activities/types.ts\` | Discriminated union for activity variants |
+| \`src/components/ActivityLog/index.tsx\` | Top-level switch dispatcher |
+| \`src/components/ActivityLog/AssistantActivity.tsx\` | Renders markdown for \`assistant\` activities |
+
+## Outstanding work
+
+- [x] Wire up the discriminated union
+- [x] Render \`assistant\` messages through \`<markdown>\`
+- [ ] Hook \`TextInput\` into the activity stream
+- [ ] Replace ~~optimistic updates~~ with proper streaming for tool calls
+    - [ ] Per-message progress
+    - [ ] Cancellation support
+
+> Heads up: the streaming approach must keep ordering deterministic so reasoning blocks do not get reattributed to the wrong tool call.
+
+## References
+
+See the [OpenTUI docs](https://opentui.com/docs/getting-started) for the underlying primitives, and the [marked grammar](https://github.com/markedjs/marked) for what is actually parsed.
+
+To show a literal asterisk in prose, escape it with a backslash: \\*not italic\\*. Common HTML entities also survive: &lt;, &gt;, &amp;, &nbsp;.
+
+---
+
+### Next priorities
+
+1. Factory module for activity construction
+2. Real \`TextInput\` wiring
+3. Streaming tool output rendering`,
+    },
+    {
         id: "a-3",
         type: "assistant",
         createdAt: nowIso(),

@@ -5,8 +5,9 @@ import { SyntaxStyle, type StyleDefinitionInput } from "@opentui/core"
 // if a consumer is imported eagerly at module-load time.
 let cached: SyntaxStyle | undefined
 
-// Minimal markdown scope -> style map.
-// OpenTUI's markdown chunker and tree-sitter markdown grammar both emit these scope names
+// Markdown chunker + tree-sitter markdown grammar emit `markup.*` scopes. `SyntaxStyle.getStyleId` only falls back
+// from `a.b.c` to the top-level `a`, so subscopes like `markup.list.checked` or `markup.link.bracket.close` need
+// explicit registrations to inherit visual intent.
 const MARKDOWN_STYLES: Record<string, StyleDefinitionInput> = {
     "markup.bold": { bold: true },
     "markup.strong": { bold: true },
@@ -25,14 +26,71 @@ const MARKDOWN_STYLES: Record<string, StyleDefinitionInput> = {
     "markup.link": { underline: true, fg: "#5fafff" },
     "markup.link.label": { underline: true, fg: "#5fafff" },
     "markup.link.url": { underline: true, fg: "#5fafff" },
+    "markup.link.bracket.close": { underline: true, fg: "#5fafff" },
     "markup.quote": { italic: true, fg: "#888888" },
     "markup.list": { fg: "#888888" },
+    "markup.list.unchecked": { fg: "#888888" },
+    "markup.list.checked": { fg: "#888888", dim: true },
+    // `conceal` is consumed by MarkdownRenderable as the default border color for tables when no explicit borderColor
+    // is provided. Picking a faint gray keeps tables visually consistent with our other muted chrome.
+    conceal: { fg: "#444444" },
+}
+
+// Source-code token colors used by the OpenTUI tree-sitter grammars (TypeScript, JavaScript, ...).
+const CODE_STYLES: Record<string, StyleDefinitionInput> = {
+    comment: { fg: "#6c6c6c", italic: true },
+    "comment.documentation": { fg: "#6c6c6c", italic: true },
+    string: { fg: "#00ceb9" },
+    "string.escape": { fg: "#00ceb9" },
+    "string.regexp": { fg: "#9e9e9e" },
+    "character.special": { fg: "#9e9e9e" },
+    number: { fg: "#93e9f6" },
+    boolean: { fg: "#93e9f6" },
+    constant: { fg: "#93e9f6" },
+    "constant.builtin": { fg: "#93e9f6" },
+    function: { fg: "#ffba92" },
+    "function.call": { fg: "#ffba92" },
+    "function.method": { fg: "#ffba92" },
+    "function.method.call": { fg: "#ffba92" },
+    "function.builtin": { fg: "#ffba92" },
+    constructor: { fg: "#ffba92" },
+    type: { fg: "#ecf58c" },
+    "type.builtin": { fg: "#ecf58c" },
+    variable: { fg: "#efefef" },
+    "variable.builtin": { fg: "#efefef" },
+    "variable.member": { fg: "#ff9ae2" },
+    property: { fg: "#ff9ae2" },
+    attribute: { fg: "#ff9ae2" },
+    keyword: { fg: "#6c6c6c" },
+    "keyword.import": { fg: "#6c6c6c" },
+    "keyword.return": { fg: "#6c6c6c" },
+    "keyword.function": { fg: "#6c6c6c" },
+    "keyword.conditional": { fg: "#6c6c6c" },
+    "keyword.conditional.ternary": { fg: "#6c6c6c" },
+    "keyword.operator": { fg: "#6c6c6c" },
+    "keyword.modifier": { fg: "#6c6c6c" },
+    "keyword.type": { fg: "#6c6c6c" },
+    "keyword.repeat": { fg: "#6c6c6c" },
+    "keyword.exception": { fg: "#6c6c6c" },
+    "keyword.coroutine": { fg: "#6c6c6c" },
+    "keyword.directive": { fg: "#6c6c6c" },
+    operator: { fg: "#6c6c6c" },
+    punctuation: { fg: "#6c6c6c" },
+    "punctuation.bracket": { fg: "#6c6c6c" },
+    "punctuation.delimiter": { fg: "#6c6c6c" },
+    "punctuation.special": { fg: "#6c6c6c" },
+    module: { fg: "#efefef" },
+    "module.builtin": { fg: "#efefef" },
+    label: { fg: "#ffba92" },
 }
 
 export function getMarkdownSyntaxStyle(): SyntaxStyle {
     if (!cached) {
         cached = SyntaxStyle.create()
         for (const [scope, style] of Object.entries(MARKDOWN_STYLES)) {
+            cached.registerStyle(scope, style)
+        }
+        for (const [scope, style] of Object.entries(CODE_STYLES)) {
             cached.registerStyle(scope, style)
         }
     }
