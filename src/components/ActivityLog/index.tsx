@@ -34,6 +34,8 @@ export function ActivityLog({ activities }: ActivityLogProps) {
             flexGrow={1}
             flexShrink={1}
             width="100%"
+            // Right padding prevents table borders from overlapping with the scrollbar.
+            paddingRight={1}
             stickyScroll
             stickyStart="bottom"
             viewportCulling
@@ -43,7 +45,14 @@ export function ActivityLog({ activities }: ActivityLogProps) {
                     case "user":
                         return <UserActivity key={activity.id} index={index} content={activity.content} />
                     case "reasoning":
-                        return <ReasoningActivity key={activity.id} index={index} content={activity.content} />
+                        return (
+                            <ReasoningActivity
+                                key={activity.id}
+                                index={index}
+                                content={activity.content}
+                                state={activity.state}
+                            />
+                        )
                     case "tool":
                         return (
                             <ToolActivity
@@ -55,7 +64,14 @@ export function ActivityLog({ activities }: ActivityLogProps) {
                             />
                         )
                     case "assistant":
-                        return <AssistantActivity key={activity.id} index={index} content={activity.content} />
+                        return (
+                            <AssistantActivity
+                                key={activity.id}
+                                index={index}
+                                content={activity.content}
+                                state={activity.state}
+                            />
+                        )
                     default: {
                         const _exhaustive: never = activity
                         return _exhaustive

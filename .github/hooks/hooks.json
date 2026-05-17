@@ -6,7 +6,7 @@
                 "type": "command",
                 "bash": "bun run .github/hooks/agent-stop.ts",
                 "powershell": "bun run .github/hooks/agent-stop.ts",
-                "timeoutSec": 180
+                "timeoutSec": 30
             }
         ]
     }

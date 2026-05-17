@@ -10,6 +10,7 @@ export interface TextInputHandle {
 interface TextInputProps {
     placeholder?: string
     onSubmit: (value: string) => void
+    canSubmit?: () => boolean
     ref?: Ref<TextInputHandle>
 }
 
@@ -26,7 +27,7 @@ const KEY_BINDINGS = [
     { name: "return", meta: true, action: "newline" as const },
 ]
 
-export function TextInput({ placeholder, onSubmit, ref }: TextInputProps) {
+export function TextInput({ placeholder, onSubmit, canSubmit, ref }: TextInputProps) {
     const textareaRef = useRef<TextareaRenderable | null>(null)
     const paste = usePasteShortening(textareaRef)
 
@@ -50,6 +51,8 @@ export function TextInput({ placeholder, onSubmit, ref }: TextInputProps) {
     const handleSubmit = () => {
         const textarea = textareaRef.current
         if (!textarea) return
+        // Gate before paste.expand() so a suppressed submit does no work and preserves the draft and paste state.
+        if (canSubmit && !canSubmit()) return
         const value = paste.expand()
         if (value.length === 0) return
         onSubmit(value)

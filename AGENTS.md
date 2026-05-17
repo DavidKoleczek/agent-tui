@@ -19,12 +19,6 @@ Agent TUI is a product and any development of it must have the highest standards
 - NEVER store or update memories.
 - New features should be continually organized in directories and files. We want things to be modular, so if a piece does not work well its easy to replace. Files like `index.tsx` should remain small when possible.
 
-
-# Development Stage
-
-Starting to build up the UX
-
-
 # Development Environment
 
 - Assume that everything is being tested in PowerShell and Windows Terminal first class. With support for inside VSCode as a close second.
