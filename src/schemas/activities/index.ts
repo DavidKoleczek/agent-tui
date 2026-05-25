@@ -1,2 +1,14 @@
-export type { Activity, ActivityState } from "./types"
-export type { ActivityStreamEvent } from "./stream-events"
+export type {
+    AssistantActivity,
+    CancelActivity,
+    ClientActivity,
+    ErrorActivity,
+    ErrorActivityType,
+    OpenAIStreamActivity,
+    QuitActivity,
+    ReadyActivity,
+    RouterResponseActivity,
+    TurnEndActivity,
+    TurnStartActivity,
+    UserActivity,
+} from "./types"

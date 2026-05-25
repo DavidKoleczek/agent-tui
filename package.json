@@ -27,6 +27,7 @@
         "@opentui/core": "0.2.14",
         "@opentui/keymap": "0.2.14",
         "@opentui/react": "0.2.14",
+        "openai": "^6.38.0",
         "react": "^19.2.6"
     }
 }
