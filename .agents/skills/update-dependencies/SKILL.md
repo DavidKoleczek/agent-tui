@@ -61,6 +61,7 @@ Repos:
 - `reference/opentui` from https://github.com/anomalyco/opentui at tag `v<version>` of `@opentui/core` (read from `package.json`).
 - `reference/opencode` from https://github.com/anomalyco/opencode at branch `dev` (the default; no `main` exists).
 - `reference/awesome-opentui` from https://github.com/msmps/awesome-opentui at branch `main`.
+- `reference/agent-server` from https://github.com/DavidKoleczek/agent-server at branch `main`.
 
 ### opentui
 

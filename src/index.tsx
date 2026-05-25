@@ -1,4 +1,4 @@
-import { createCliRenderer } from "@opentui/core"
+import { CliRenderEvents, createCliRenderer } from "@opentui/core"
 import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
 import { KeymapProvider } from "@opentui/keymap/react"
 import { createRoot } from "@opentui/react"
@@ -8,6 +8,7 @@ import { type TextInputHandle, TextInput } from "./components/TextInput"
 import { useCtrlCExit } from "./hooks/use-ctrl-c-exit"
 import { createActivityStore } from "./lib/activity-store"
 import { type ScriptedReply, startScriptedReply } from "./lib/mock-stream/scripted-reply"
+import { startServer } from "./lib/server"
 import { installVSCodeInputShims } from "./lib/vscode-shift-enter"
 
 interface AppProps {
@@ -60,9 +61,24 @@ function App({ onBeforeExit }: AppProps) {
     )
 }
 
+// Runs the agent-server, resolving uv automatically.
+const server = startServer()
+
 const renderer = await createCliRenderer({ exitOnCtrlC: false })
 const keymap = createDefaultOpenTuiKeymap(renderer)
 const uninstallVSCodeShims = installVSCodeInputShims()
+
+let stopping = false
+const stopServer = (): void => {
+    if (stopping) return
+    stopping = true
+    void server.stop()
+}
+
+renderer.on(CliRenderEvents.DESTROY, stopServer)
+process.on("SIGINT", stopServer)
+process.on("SIGTERM", stopServer)
+
 createRoot(renderer).render(
     <KeymapProvider keymap={keymap}>
         <App onBeforeExit={uninstallVSCodeShims} />

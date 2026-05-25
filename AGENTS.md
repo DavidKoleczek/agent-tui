@@ -22,7 +22,7 @@ Agent TUI is a product and any development of it must have the highest standards
 # Development Environment
 
 - Assume that everything is being tested in PowerShell and Windows Terminal first class. With support for inside VSCode as a close second.
-- Assume that everything needs to work on Windows 10/11 as first class
+- Assume that everything needs to work on Windows 10/11 as first class, but Ubuntu and WSL2 should also be supported.
 - Performance is critical to make sure rendering and scrolling are fast across all terminals.
 
 
@@ -31,6 +31,7 @@ Agent TUI is a product and any development of it must have the highest standards
 @README.md
 
 reference/ includes the source code for key libraries as a reference:
+- `agent-server` - Our main integration point
 - `opentui`
 - `opencode`
 - `awesome-opentui`
