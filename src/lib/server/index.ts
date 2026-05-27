@@ -1,27 +1,41 @@
+import { resolveChatFile } from "./chat-file"
 import { waitForHealthz } from "./health"
 import { createLogFile, type LogFile } from "./log-file"
 import { pickFreePort } from "./port"
 import { spawnAgentServer, type ServerProcess } from "./spawn"
 import { resolveUv } from "./uv"
+import { connectAgentWebSocket, type WsClient } from "./ws-client"
+import { createWsLog, type WsLog } from "./ws-log"
 
 export interface ServerHandle {
     // Resolves with the live process once spawn succeeds, or null if startup failed.
     // Failures never reject; all errors are written to the log file.
     process: Promise<ServerProcess | null>
-    // Idempotent. Awaits process startup (if still in-flight), kills it, and flushes
-    // the log file. Safe to call from multiple cleanup paths concurrently.
+    // Resolves with the websocket client once /healthz is ready and the socket constructor has been called,
+    // or null if the server never reached the ready state.
+    // Resolution does not imply the socket is OPEN. Consumers must observe `isReady()` for that.
+    ws: Promise<WsClient | null>
+    // Idempotent. Awaits startup (if still in-flight), closes the websocket, kills the process, and flushes both log files.
+    // Safe to call from multiple cleanup paths concurrently.
     stop(): Promise<void>
-    // Path of the per-session log file, exposed for diagnostics.
+    // Path of the per-session server-stdout log file, exposed for diagnostics.
     logPath: string
+    // Path of the per-session websocket transcript log file, exposed for diagnostics.
+    wsLogPath: string
 }
 
-// Boots the agent-server lifecycle without blocking the caller. Errors during
-// resolution, spawn, or health check are caught and recorded in the per-session
-// log; the TUI keeps running regardless, matching the agreed failure policy.
+// Boots the agent-server lifecycle without blocking the caller.
+// Errors during resolution, spawn, or health check are caught and recorded in the per-session log
 export function startServer(cwd: string = process.cwd()): ServerHandle {
     const log: LogFile = createLogFile(cwd)
+    const wsLog: WsLog = createWsLog(cwd)
 
     let stopping: Promise<void> | null = null
+
+    let resolveWs: (value: WsClient | null) => void = () => {}
+    const wsPromise: Promise<WsClient | null> = new Promise((resolve) => {
+        resolveWs = resolve
+    })
 
     const processPromise: Promise<ServerProcess | null> = (async () => {
         try {
@@ -34,15 +48,32 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
             const health = await waitForHealthz({ port })
             if (health.ok) {
                 log.write(`[agent-tui] healthz ready after ${health.elapsedMs}ms (attempts=${health.attempts})\n`)
+                try {
+                    const chatFile = resolveChatFile(cwd)
+                    log.write(`[agent-tui] chat_file=${chatFile}\n`)
+                    log.write(`[agent-tui] ws_log=${wsLog.path}\n`)
+                    const client = connectAgentWebSocket({
+                        port,
+                        workingDir: cwd,
+                        chatFile,
+                        log: wsLog,
+                    })
+                    resolveWs(client)
+                } catch (err) {
+                    log.write(`[agent-tui] ws connect failed: ${(err as Error).stack ?? (err as Error).message}\n`)
+                    resolveWs(null)
+                }
             } else {
                 log.write(
                     `[agent-tui] healthz timed out after ${health.elapsedMs}ms (attempts=${health.attempts}, ` +
                         `lastStatus=${health.lastStatus ?? "n/a"}, lastError=${health.lastError ?? "n/a"})\n`,
                 )
+                resolveWs(null)
             }
             return proc
         } catch (err) {
             log.write(`[agent-tui] startup failed: ${(err as Error).stack ?? (err as Error).message}\n`)
+            resolveWs(null)
             return null
         }
     })()
@@ -50,10 +81,14 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
     const stop = (): Promise<void> => {
         if (stopping !== null) return stopping
         stopping = (async () => {
-            const proc = await processPromise
+            const [proc, ws] = await Promise.all([processPromise, wsPromise])
+            if (ws !== null) {
+                await ws.close()
+            }
             if (proc !== null) {
                 await proc.kill()
             }
+            await wsLog.close()
             await log.close()
         })()
         return stopping
@@ -61,7 +96,9 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
 
     return {
         process: processPromise,
+        ws: wsPromise,
         stop,
         logPath: log.path,
+        wsLogPath: wsLog.path,
     }
 }

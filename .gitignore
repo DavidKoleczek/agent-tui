@@ -1,5 +1,7 @@
 # Project Specific
 reference/
+.agents/sessions/
+.agents/logs/
 
 # OpenTUI auto-generated
 # dependencies (bun install)

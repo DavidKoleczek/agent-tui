@@ -2,25 +2,22 @@ import { CliRenderEvents, createCliRenderer } from "@opentui/core"
 import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
 import { KeymapProvider } from "@opentui/keymap/react"
 import { createRoot } from "@opentui/react"
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react"
-import { ActivityLog } from "./components/ActivityLog"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { type TextInputHandle, TextInput } from "./components/TextInput"
 import { useCtrlCExit } from "./hooks/use-ctrl-c-exit"
-import { createActivityStore } from "./lib/activity-store"
-import { type ScriptedReply, startScriptedReply } from "./lib/mock-stream/scripted-reply"
 import { startServer } from "./lib/server"
+import type { WsClient } from "./lib/server/ws-client"
 import { installVSCodeInputShims } from "./lib/vscode-shift-enter"
 
 interface AppProps {
+    ws: Promise<WsClient | null>
     onBeforeExit: () => void
 }
 
-function App({ onBeforeExit }: AppProps) {
-    const store = useMemo(() => createActivityStore(), [])
-    // Subscribe to the external activity store; its cached snapshot reference lets useSyncExternalStore skip re-renders when the reducer is a no-op.
-    const activities = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+function App({ ws, onBeforeExit }: AppProps) {
     const inputRef = useRef<TextInputHandle | null>(null)
-    const producerRef = useRef<ScriptedReply | null>(null)
+    const wsClientRef = useRef<WsClient | null>(null)
+    const [ready, setReady] = useState(false)
 
     useCtrlCExit({
         isEmpty: () => inputRef.current?.isEmpty() ?? true,
@@ -29,34 +26,35 @@ function App({ onBeforeExit }: AppProps) {
     })
 
     useEffect(() => {
+        let unsubscribe: (() => void) | null = null
+        let cancelled = false
+        void ws.then((client) => {
+            if (cancelled || client === null) return
+            wsClientRef.current = client
+            setReady(client.isReady())
+            unsubscribe = client.subscribeReady(() => {
+                setReady(client.isReady())
+            })
+        })
         return () => {
-            producerRef.current?.dispose()
-            producerRef.current = null
+            cancelled = true
+            unsubscribe?.()
         }
+    }, [ws])
+
+    const handleSubmit = useCallback((value: string) => {
+        // Silent no-op until the websocket is open.
+        // We intentionally don't surface a "not ready" indicator in the UI yet
+        // canSubmit blocks submission via TextInput
+        wsClientRef.current?.sendUserMessage(value)
     }, [])
 
-    const hasInProgressActivity = useCallback(() => {
-        for (const activity of store.getSnapshot()) {
-            if (activity.state === "in_progress") return true
-        }
-        return false
-    }, [store])
-
-    const handleSubmit = useCallback(
-        (value: string) => {
-            const userId = store.nextId("user")
-            store.applyEvent({ type: "user.submit", id: userId, content: value })
-            producerRef.current = startScriptedReply(store, value, () => {
-                producerRef.current = null
-            })
-        },
-        [store],
-    )
+    const canSubmit = useCallback(() => ready, [ready])
 
     return (
         <box flexDirection="column" flexGrow={1}>
-            <ActivityLog activities={activities} />
-            <TextInput ref={inputRef} onSubmit={handleSubmit} canSubmit={() => !hasInProgressActivity()} />
+            <box flexGrow={1} />
+            <TextInput ref={inputRef} onSubmit={handleSubmit} canSubmit={canSubmit} />
         </box>
     )
 }
@@ -81,6 +79,6 @@ process.on("SIGTERM", stopServer)
 
 createRoot(renderer).render(
     <KeymapProvider keymap={keymap}>
-        <App onBeforeExit={uninstallVSCodeShims} />
+        <App ws={server.ws} onBeforeExit={uninstallVSCodeShims} />
     </KeymapProvider>,
 )
