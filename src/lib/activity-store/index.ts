@@ -1,24 +1,33 @@
-import { type Activity, type ActivityStreamEvent } from "../../schemas/activities"
-import { apply } from "./reducer"
+import { type Activity, type AssistantActivity } from "../../schemas/activities"
+import { applyServer, applyUserMessage } from "./reducer"
 
 export interface ActivityStore {
     subscribe: (listener: () => void) => () => void
     getSnapshot: () => readonly Activity[]
-    applyEvent: (event: ActivityStreamEvent) => void
+    pushUserMessage: (content: string) => void
+    applyServerActivity: (activity: AssistantActivity) => void
     nextId: (prefix: string) => string
     reset: () => void
 }
 
-// In-memory store. Caches the snapshot reference so the reducer's no-op-returns-same-array
-// guarantee flows through to `useSyncExternalStore` (which uses Object.is on the snapshot).
-// Owns the monotonic id counter so callers never collide and the reducer's id-uniqueness
-// precondition cannot be violated.
 export function createActivityStore(): ActivityStore {
     let activities: readonly Activity[] = []
     const listeners = new Set<() => void>()
     let counter = 0
 
+    const nextId = (prefix: string): string => {
+        counter += 1
+        return `${prefix}-${counter}`
+    }
+
+    const notify = (next: readonly Activity[]): void => {
+        if (next === activities) return
+        activities = next
+        for (const listener of listeners) listener()
+    }
+
     return {
+        // subscribe and getSnapshot are used by React's useSyncExternalStore to read and re-render on changes.
         subscribe(listener) {
             listeners.add(listener)
             return () => {
@@ -28,20 +37,25 @@ export function createActivityStore(): ActivityStore {
         getSnapshot() {
             return activities
         },
-        applyEvent(event) {
-            const next = apply(event, activities)
-            if (next === activities) return
-            activities = next
-            for (const listener of listeners) listener()
+        // Appends user's typed message
+        pushUserMessage(content) {
+            notify(applyUserMessage(content, nextId("user"), activities))
         },
-        nextId(prefix) {
-            counter += 1
-            return `${prefix}-${counter}`
+        // Takes an AssistantActivity, runs it through the applyServer reducer to produce the new list of Activities, and then notifies subscribers.
+        applyServerActivity(activity) {
+            notify(
+                applyServer(activity, activities, () => {
+                    const prefix = activity.type === "openai_stream" ? "stream" : "evt"
+                    return nextId(prefix)
+                }),
+            )
         },
+        nextId,
         reset() {
             if (activities.length === 0 && counter === 0) return
             activities = []
             counter = 0
+            // Notifies each subscriber that the activities have been reset.
             for (const listener of listeners) listener()
         },
     }

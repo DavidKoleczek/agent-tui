@@ -1,65 +1,91 @@
+/** Handles new activities as they come in and updates the activity list accordingly. */
+
+import type OpenAI from "openai"
 import { fraction } from "../../lib/branded-types"
-import { type Activity, type ActivityStreamEvent } from "../../schemas/activities"
-import {
-    createInProgressAssistant,
-    createInProgressReasoning,
-    createUserActivity,
-} from "../../schemas/activities/factories"
+import { type Activity, type AssistantActivity } from "../../schemas/activities"
+import { createInProgressAssistant, createInProgressReasoning, createUserActivity } from "./factories"
 
-type MarkdownActivity = Extract<Activity, { type: "assistant" | "reasoning" }>
+type ReasoningDeltaEvent = OpenAI.Responses.ResponseReasoningSummaryTextDeltaEvent
+type TextDeltaEvent = OpenAI.Responses.ResponseTextDeltaEvent
 
-function isMarkdownBearing(activity: Activity): activity is MarkdownActivity {
-    return activity.type === "assistant" || activity.type === "reasoning"
+function lastInProgress(current: readonly Activity[]): Activity | undefined {
+    const last = current[current.length - 1]
+    if (last === undefined) return undefined
+    if (last.state !== "in_progress") return undefined
+    return last
 }
 
-function findById(activities: readonly Activity[], id: string): Activity | undefined {
-    for (const activity of activities) {
-        if (activity.id === id) return activity
+function closeCurrent(current: readonly Activity[]): readonly Activity[] {
+    const last = lastInProgress(current)
+    if (last === undefined) return current
+    const next = current.slice()
+    next[next.length - 1] = { ...last, state: "complete", progress: fraction(1) }
+    return next
+}
+
+function appendDelta(
+    current: readonly Activity[],
+    kind: "reasoning" | "assistant",
+    delta: string,
+    nextId: () => string,
+): readonly Activity[] {
+    if (delta.length === 0) return current
+
+    const last = lastInProgress(current)
+    if (last !== undefined && last.type === kind) {
+        // `kind` constrains `last.type` to either "reasoning" or "assistant", both of which
+        // expose a `content: string` field, so this object spread stays type-safe.
+        const next = current.slice()
+        next[next.length - 1] = { ...last, content: last.content + delta }
+        return next
     }
-    return undefined
+
+    const closed = closeCurrent(current)
+    const fresh =
+        kind === "reasoning" ? createInProgressReasoning(nextId(), delta) : createInProgressAssistant(nextId(), delta)
+    return [...closed, fresh]
 }
 
-function replaceById(activities: readonly Activity[], id: string, next: Activity): readonly Activity[] {
-    const result = activities.slice()
-    for (let i = 0; i < result.length; i += 1) {
-        if (result[i]!.id === id) {
-            result[i] = next
-            return result
-        }
-    }
-    return activities
-}
-
-// Pure, side-effect-free reducer. Returns the same array reference for no-op events so
-// `useSyncExternalStore` (which uses Object.is on the snapshot) skips work. On mutating
-// events returns a new array with every unchanged slot pointing at the previous activity
-// object so memoized row components stay referentially equal.
-export function apply(event: ActivityStreamEvent, current: readonly Activity[]): readonly Activity[] {
+function applyOpenAiEvent(
+    event: OpenAI.Responses.ResponseStreamEvent,
+    current: readonly Activity[],
+    nextId: () => string,
+): readonly Activity[] {
     switch (event.type) {
-        case "user.submit": {
-            if (findById(current, event.id)) return current
-            return [...current, createUserActivity(event.id, event.content)]
+        case "response.reasoning_summary_text.delta": {
+            const delta = (event as ReasoningDeltaEvent).delta
+            return appendDelta(current, "reasoning", delta, nextId)
         }
-        case "assistant.start": {
-            if (findById(current, event.id)) return current
-            return [...current, createInProgressAssistant(event.id)]
+        case "response.output_text.delta": {
+            const delta = (event as TextDeltaEvent).delta
+            return appendDelta(current, "assistant", delta, nextId)
         }
-        case "reasoning.start": {
-            if (findById(current, event.id)) return current
-            return [...current, createInProgressReasoning(event.id)]
-        }
-        case "delta": {
-            const target = findById(current, event.id)
-            if (!target || !isMarkdownBearing(target) || target.state !== "in_progress") return current
-            if (event.text.length === 0) return current
-            const next: MarkdownActivity = { ...target, content: target.content + event.text }
-            return replaceById(current, event.id, next)
-        }
-        case "complete": {
-            const target = findById(current, event.id)
-            if (!target || target.state !== "in_progress") return current
-            const next: Activity = { ...target, state: "complete", progress: fraction(1) }
-            return replaceById(current, event.id, next)
-        }
+        default:
+            return closeCurrent(current)
     }
+}
+
+/** Handles the new activity, optionally creates a new list of activities. */
+export function applyServer(
+    activity: AssistantActivity,
+    current: readonly Activity[],
+    nextId: () => string,
+): readonly Activity[] {
+    switch (activity.type) {
+        case "openai_stream":
+            return applyOpenAiEvent(activity.stream_event, current, nextId)
+        case "ready":
+        case "turn_start":
+        case "turn_end":
+        case "error":
+        case "router_response":
+            return closeCurrent(current)
+    }
+}
+
+export function applyUserMessage(content: string, id: string, current: readonly Activity[]): readonly Activity[] {
+    // Defensive close-current: between turns there should be no in-progress activity, but if
+    // the previous turn dropped its `turn_end` we don't want a lingering streaming block.
+    const closed = closeCurrent(current)
+    return [...closed, createUserActivity(id, content)]
 }

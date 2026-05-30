@@ -1,4 +1,10 @@
-import type { CancelActivity, ClientActivity, QuitActivity, UserActivity } from "../../schemas/activities"
+import type {
+    AssistantActivity,
+    CancelActivity,
+    ClientActivity,
+    QuitActivity,
+    UserActivity,
+} from "../../schemas/activities"
 import type { WsLog } from "./ws-log"
 
 export interface ConnectAgentWebSocketOptions {
@@ -11,6 +17,7 @@ export interface ConnectAgentWebSocketOptions {
 export interface WsClient {
     isReady(): boolean
     subscribeReady(listener: () => void): () => void
+    subscribeActivities(listener: (activity: AssistantActivity) => void): () => void
     sendUserMessage(content: string): boolean
     cancel(): boolean
     quit(): boolean
@@ -29,8 +36,12 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ws
     const ws = new WebSocket(url)
 
     const readyListeners = new Set<() => void>()
+    const activityListeners = new Set<(activity: AssistantActivity) => void>()
     const notifyReady = (): void => {
         for (const listener of readyListeners) listener()
+    }
+    const notifyActivity = (activity: AssistantActivity): void => {
+        for (const listener of activityListeners) listener(activity)
     }
 
     ws.onopen = (): void => {
@@ -47,6 +58,8 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ws
     ws.onmessage = (event: MessageEvent): void => {
         if (typeof event.data === "string") {
             log.recv(event.data)
+            const parsed = tryParseActivity(event.data)
+            if (parsed !== null) notifyActivity(parsed)
         } else {
             log.recv("(binary frame omitted)")
         }
@@ -68,6 +81,12 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ws
             readyListeners.add(listener)
             return () => {
                 readyListeners.delete(listener)
+            }
+        },
+        subscribeActivities(listener) {
+            activityListeners.add(listener)
+            return () => {
+                activityListeners.delete(listener)
             }
         },
         sendUserMessage(content) {
@@ -106,4 +125,18 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ws
 function buildUrl(port: number, workingDir: string, chatFile: string): string {
     const params = new URLSearchParams({ working_dir: workingDir, chat_file: chatFile })
     return `ws://127.0.0.1:${port}/agent?${params.toString()}`
+}
+
+// Minimal duck-typed validation: enough to filter obvious junk frames without dragging in a
+// runtime validator. The reducer downstream only branches on `activity.type`; everything
+// else stays opaque until we actually consume it.
+function tryParseActivity(raw: string): AssistantActivity | null {
+    try {
+        const obj = JSON.parse(raw)
+        if (typeof obj !== "object" || obj === null) return null
+        if (typeof (obj as { type?: unknown }).type !== "string") return null
+        return obj as AssistantActivity
+    } catch {
+        return null
+    }
 }

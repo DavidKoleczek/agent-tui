@@ -12,3 +12,4 @@ export type {
     TurnStartActivity,
     UserActivity,
 } from "./types"
+export type { Activity, ActivityState } from "./ui"
