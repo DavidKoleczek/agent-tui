@@ -1,26 +1,32 @@
-import { type Activity, type AssistantActivity } from "../../schemas/activities"
-import { applyServer, applyUserMessage } from "./reducer"
+/* Stores a list of SessionActivity objects.
+The webserver streams StreamingEvents which will be converted into SessionActivities as they come in.
+*/
+
+import { type SessionActivity, type UserActivity, type StreamingEvent } from "../../schemas/activities"
+import { nowIso } from "../branded-types"
+import { applyStreamingEvent, type ReducerLog, noopLog, setActivity } from "./reducer"
 
 export interface ActivityStore {
     subscribe: (listener: () => void) => () => void
-    getSnapshot: () => readonly Activity[]
+    getSnapshot: () => ReadonlyMap<string, SessionActivity>
     pushUserMessage: (content: string) => void
-    applyServerActivity: (activity: AssistantActivity) => void
-    nextId: (prefix: string) => string
+    applyStreamingEvent: (event: StreamingEvent) => void
     reset: () => void
 }
 
-export function createActivityStore(): ActivityStore {
-    let activities: readonly Activity[] = []
+export interface CreateActivityStoreOptions {
+    // Sink for protocol anomalies surfaced by the reducer. Defaults to a no-op.
+    log?: ReducerLog
+}
+
+export function createActivityStore(options: CreateActivityStoreOptions = {}): ActivityStore {
+    const log = options.log ?? noopLog
+    let activities: ReadonlyMap<string, SessionActivity> = new Map()
     const listeners = new Set<() => void>()
-    let counter = 0
 
-    const nextId = (prefix: string): string => {
-        counter += 1
-        return `${prefix}-${counter}`
-    }
-
-    const notify = (next: readonly Activity[]): void => {
+    const notify = (next: ReadonlyMap<string, SessionActivity>): void => {
+        // Reducer returns the current map when an event does not change the activity state.
+        // Otherwise, it must create a new map.
         if (next === activities) return
         activities = next
         for (const listener of listeners) listener()
@@ -37,26 +43,24 @@ export function createActivityStore(): ActivityStore {
         getSnapshot() {
             return activities
         },
-        // Appends user's typed message
         pushUserMessage(content) {
-            notify(applyUserMessage(content, nextId("user"), activities))
+            const userActivity: UserActivity = {
+                id: crypto.randomUUID(),
+                type: "user",
+                state: "complete",
+                timestamp: nowIso(),
+                content,
+            }
+            notify(setActivity(activities, userActivity))
         },
-        // Takes an AssistantActivity, runs it through the applyServer reducer to produce the new list of Activities, and then notifies subscribers.
-        applyServerActivity(activity) {
-            notify(
-                applyServer(activity, activities, () => {
-                    const prefix = activity.type === "openai_stream" ? "stream" : "evt"
-                    return nextId(prefix)
-                }),
-            )
+        // Takes a StreamingEvent, runs it through the applyStreamingEvent reducer
+        // which either returns a new map, or the current one, and then notifies subscribers.
+        applyStreamingEvent(event) {
+            notify(applyStreamingEvent(event, activities, log))
         },
-        nextId,
         reset() {
-            if (activities.length === 0 && counter === 0) return
-            activities = []
-            counter = 0
-            // Notifies each subscriber that the activities have been reset.
-            for (const listener of listeners) listener()
+            if (activities.size === 0) return
+            notify(new Map())
         },
     }
 }

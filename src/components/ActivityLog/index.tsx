@@ -2,14 +2,15 @@ import { type ScrollBoxRenderable } from "@opentui/core"
 import { useBindings } from "@opentui/keymap/react"
 import { useRef } from "react"
 import { activityLogBindings } from "../../lib/keybindings"
-import { type Activity } from "../../schemas/activities"
+import { type SessionActivity } from "../../schemas/activities"
 import { AssistantActivity } from "./AssistantActivity"
 import { ReasoningActivity } from "./ReasoningActivity"
 import { ToolActivity } from "./ToolActivity"
 import { UserActivity } from "./UserActivity"
+import { ErrorActivity } from "./ErrorActivity"
 
 interface ActivityLogProps {
-    activities: readonly Activity[]
+    activities: ReadonlyMap<string, SessionActivity>
 }
 
 export function ActivityLog({ activities }: ActivityLogProps) {
@@ -40,7 +41,7 @@ export function ActivityLog({ activities }: ActivityLogProps) {
             stickyStart="bottom"
             viewportCulling
         >
-            {activities.map((activity, index) => {
+            {Array.from(activities.values()).map((activity, index) => {
                 switch (activity.type) {
                     case "user":
                         return <UserActivity key={activity.id} index={index} content={activity.content} />
@@ -53,14 +54,14 @@ export function ActivityLog({ activities }: ActivityLogProps) {
                                 state={activity.state}
                             />
                         )
-                    case "tool":
+                    case "task":
                         return (
                             <ToolActivity
                                 key={activity.id}
                                 index={index}
-                                toolName={activity.toolName}
-                                toolArguments={activity.toolArguments}
-                                toolOutput={activity.toolOutput}
+                                toolName={activity.name}
+                                toolArguments={activity.arguments ?? {}}
+                                toolOutput={activity.result ?? ""}
                             />
                         )
                     case "assistant":
@@ -70,6 +71,15 @@ export function ActivityLog({ activities }: ActivityLogProps) {
                                 index={index}
                                 content={activity.content}
                                 state={activity.state}
+                            />
+                        )
+                    case "error":
+                        return (
+                            <ErrorActivity
+                                key={activity.id}
+                                index={index}
+                                error_type={activity.error_type}
+                                detail={activity.detail}
                             />
                         )
                     default: {

@@ -1,69 +1,125 @@
-import type OpenAI from "openai"
+import { type IsoTimestamp } from "../../lib/branded-types"
 
 // Wire-protocol types for the agent-server `/agent` WebSocket.
 // Field names and `type` discriminants match the server's Pydantic models exactly so JSON round-trips without a translation layer.
 // See agent-server/docs/PROTOCOL.md and agent-server/src/agent_server/schemas/activity.py.
 
-// region: Client -> Server
+export type ActivityState = "in_progress" | "complete" | "error" | "cancelled"
+export type TaskPermission = "accepted" | "denied" | "pending"
 
-export interface UserActivity {
+// region: Client Events
+// Client events are inbound commands from the client. They are not persisted as conversation history.
+
+export interface UserMessageEvent {
     type: "user_message"
     content: string
 }
 
-export interface CancelActivity {
+export interface CancelEvent {
     type: "cancel"
 }
 
-export interface QuitActivity {
+export interface QuitEvent {
     type: "quit"
 }
 
-export type ClientActivity = UserActivity | CancelActivity | QuitActivity
+export type ClientEvent = UserMessageEvent | CancelEvent | QuitEvent
 
 // endregion
 
-// region: Server -> Client
+// region: Session Activities
+// Session activities are persisted session history that can be loaded by clients later.
 
-export interface ReadyActivity {
-    type: "ready"
+export interface ActivityBase {
+    id: string
+    state: ActivityState
+    timestamp: IsoTimestamp
 }
 
-export interface TurnStartActivity {
-    type: "turn_start"
+export interface UserActivity extends ActivityBase {
+    type: "user"
+    content: string
 }
 
-export interface TurnEndActivity {
-    type: "turn_end"
+export interface AssistantActivity extends ActivityBase {
+    type: "assistant"
+    content: string
 }
 
-export type ErrorActivityType = "invalid_client_activity_format" | "agent_error"
+export interface ReasoningActivity extends ActivityBase {
+    type: "reasoning"
+    content: string
+}
 
-export interface ErrorActivity {
+export interface TaskActivity extends ActivityBase {
+    type: "task"
+    name: string
+    permission: TaskPermission
+    arguments: Record<string, unknown> | null
+    result: string | null
+}
+
+export interface ErrorActivity extends ActivityBase {
     type: "error"
-    error_type: ErrorActivityType
+    error_type: string
     detail: string
 }
 
-export interface OpenAIStreamActivity {
-    type: "openai_stream"
-    model_name: string
-    stream_event: OpenAI.Responses.ResponseStreamEvent
+export type SessionActivity = UserActivity | AssistantActivity | ReasoningActivity | TaskActivity | ErrorActivity
+
+// endregion
+
+// region: Streaming Events
+// Streaming events are the live updates that the server sends to the client. They are ephemeral and not persisted.
+
+export interface TaskArgumentDelta {
+    key: string
+    value: unknown
 }
 
-// `response` is interop-router's `RouterResponse`. No TS package exists yet, so it stays
-// opaque until we actually consume it.
-export interface RouterResponseActivity {
-    type: "router_response"
-    response: unknown
+export interface ActivityDelta {
+    content_delta?: string | null
+    argument_delta?: TaskArgumentDelta | null
+    result_delta?: string | null
+    permission?: TaskPermission | null
 }
 
-export type AssistantActivity =
-    | ReadyActivity
-    | TurnStartActivity
-    | TurnEndActivity
-    | ErrorActivity
-    | OpenAIStreamActivity
-    | RouterResponseActivity
+export interface ReadyEvent {
+    type: "ready"
+}
+
+export interface TurnStartEvent {
+    type: "turn_start"
+}
+
+export interface TurnEndEvent {
+    type: "turn_end"
+}
+
+export interface ActivityCreatedEvent {
+    type: "activity_created"
+    activity: SessionActivity
+}
+
+// Patches an existing activity. Intended for streaming efficiency, so only changed fields are present.
+export interface ActivityDeltaEvent {
+    type: "activity_delta"
+    activity_id: string
+    delta: ActivityDelta
+}
+
+// Carries the complete, finalized activity, replacing any previously created or patched copy.
+export interface ActivityUpdatedEvent {
+    type: "activity_updated"
+    activity: SessionActivity
+}
+
+export type StreamingEvent =
+    | ActivityCreatedEvent
+    | ActivityDeltaEvent
+    | ActivityUpdatedEvent
+    | ReadyEvent
+    | TurnStartEvent
+    | TurnEndEvent
 
 // endregion

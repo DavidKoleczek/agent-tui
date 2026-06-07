@@ -7,6 +7,7 @@ export interface WsLog {
     path: string
     sent(text: string): void
     recv(text: string): void
+    warn(message: string): void
     close(): Promise<void>
 }
 
@@ -56,6 +57,9 @@ export function createWsLog(cwd: string): WsLog {
         },
         recv(text) {
             enqueue(format("recv", text))
+        },
+        warn(message) {
+            enqueue(`${new Date().toISOString()} !! warn\n${message}\n\n`)
         },
         close: async () => {
             await chain

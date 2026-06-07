@@ -18,8 +18,9 @@ interface AppProps {
 
 function App({ ws, onBeforeExit }: AppProps) {
     // Holds the list of Activities shown in the UI with a goal to keep state logic separate from React and prevent re-renders. Components subscribe to this.
-    const store = useMemo(() => createActivityStore(), [])
-    // useExternalStore let's us manage our own subscription logic and only re-render when the list of activities changes.
+    const logRef = useRef<(message: string) => void>(() => {})
+    const store = useMemo(() => createActivityStore({ log: { warn: (m) => logRef.current(m) } }), [])
+    // useExternalStore let's us manage our own subscription logic and only re-render when activities change.
     const activities = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     // Ref to the TextInput component used to manage the user input handling logic outside of the component.
     const inputRef = useRef<TextInputHandle | null>(null)
@@ -40,6 +41,8 @@ function App({ ws, onBeforeExit }: AppProps) {
             if (cancelled || client === null) return
             // Store the websocket client in a ref so it can be used in other parts of the app.
             wsClientRef.current = client
+            // Forward reducer anomaly logs into this connection's transcript.
+            logRef.current = (message) => client.warn(message)
             // Once the websocket is ready, we update the state to indicate "loading" is complete and the user can submit messages.
             setReady(client.isReady())
             unsubscribes.push(
@@ -47,14 +50,15 @@ function App({ ws, onBeforeExit }: AppProps) {
                 client.subscribeReady(() => {
                     setReady(client.isReady())
                 }),
-                // On each incoming activity from the server, this feeds it into the store, which then updates the UI.
-                client.subscribeActivities((activity) => {
-                    store.applyServerActivity(activity)
+                // On each incoming StreamingEvent from the server, this feeds it into the store, which then updates the UI.
+                client.subscribeActivities((event) => {
+                    store.applyStreamingEvent(event)
                 }),
             )
         })
         return () => {
             cancelled = true
+            logRef.current = () => {}
             for (const unsubscribe of unsubscribes) unsubscribe()
         }
     }, [ws, store])

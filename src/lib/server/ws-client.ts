@@ -1,10 +1,4 @@
-import type {
-    AssistantActivity,
-    CancelActivity,
-    ClientActivity,
-    QuitActivity,
-    UserActivity,
-} from "../../schemas/activities"
+import type { ClientEvent, StreamingEvent, UserMessageEvent, CancelEvent, QuitEvent } from "../../schemas/activities"
 import type { WsLog } from "./ws-log"
 
 export interface ConnectAgentWebSocketOptions {
@@ -17,10 +11,11 @@ export interface ConnectAgentWebSocketOptions {
 export interface WsClient {
     isReady(): boolean
     subscribeReady(listener: () => void): () => void
-    subscribeActivities(listener: (activity: AssistantActivity) => void): () => void
+    subscribeActivities(listener: (activity: StreamingEvent) => void): () => void
     sendUserMessage(content: string): boolean
     cancel(): boolean
     quit(): boolean
+    warn(message: string): void
     close(): Promise<void>
 }
 
@@ -36,12 +31,12 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ws
     const ws = new WebSocket(url)
 
     const readyListeners = new Set<() => void>()
-    const activityListeners = new Set<(activity: AssistantActivity) => void>()
+    const streamingListeners = new Set<(activity: StreamingEvent) => void>()
     const notifyReady = (): void => {
         for (const listener of readyListeners) listener()
     }
-    const notifyActivity = (activity: AssistantActivity): void => {
-        for (const listener of activityListeners) listener(activity)
+    const notifyActivity = (activity: StreamingEvent): void => {
+        for (const listener of streamingListeners) listener(activity)
     }
 
     ws.onopen = (): void => {
@@ -65,7 +60,7 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ws
         }
     }
 
-    const trySend = (activity: ClientActivity): boolean => {
+    const trySend = (activity: ClientEvent): boolean => {
         if (ws.readyState !== WebSocket.OPEN) return false
         const text = JSON.stringify(activity)
         ws.send(text)
@@ -84,22 +79,25 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ws
             }
         },
         subscribeActivities(listener) {
-            activityListeners.add(listener)
+            streamingListeners.add(listener)
             return () => {
-                activityListeners.delete(listener)
+                streamingListeners.delete(listener)
             }
         },
         sendUserMessage(content) {
-            const activity: UserActivity = { type: "user_message", content }
+            const activity: UserMessageEvent = { type: "user_message", content }
             return trySend(activity)
         },
         cancel() {
-            const activity: CancelActivity = { type: "cancel" }
+            const activity: CancelEvent = { type: "cancel" }
             return trySend(activity)
         },
         quit() {
-            const activity: QuitActivity = { type: "quit" }
+            const activity: QuitEvent = { type: "quit" }
             return trySend(activity)
+        },
+        warn(message) {
+            log.warn(message)
         },
         close: () => {
             if (closing !== null) return closing
@@ -127,15 +125,14 @@ function buildUrl(port: number, workingDir: string, chatFile: string): string {
     return `ws://127.0.0.1:${port}/agent?${params.toString()}`
 }
 
-// Minimal duck-typed validation: enough to filter obvious junk frames without dragging in a
-// runtime validator. The reducer downstream only branches on `activity.type`; everything
-// else stays opaque until we actually consume it.
-function tryParseActivity(raw: string): AssistantActivity | null {
+// Minimal duck-typed validation: enough to filter obvious junk frames without dragging in a runtime validator.
+// The reducer downstream only branches on `activity.type`; everything else stays opaque until we actually consume it.
+function tryParseActivity(raw: string): StreamingEvent | null {
     try {
         const obj = JSON.parse(raw)
         if (typeof obj !== "object" || obj === null) return null
         if (typeof (obj as { type?: unknown }).type !== "string") return null
-        return obj as AssistantActivity
+        return obj as StreamingEvent
     } catch {
         return null
     }
