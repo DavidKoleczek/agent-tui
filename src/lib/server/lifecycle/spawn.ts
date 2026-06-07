@@ -1,4 +1,4 @@
-import type { LogFile } from "./log-file"
+import type { LogFile } from "../session/server-log"
 import { platform } from "./platform"
 
 export interface SpawnAgentServerOptions {

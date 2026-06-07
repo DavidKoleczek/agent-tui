@@ -1,4 +1,4 @@
-import { type IsoTimestamp } from "../../lib/branded-types"
+import { type IsoTimestamp } from "./branded-types"
 
 // Wire-protocol types for the agent-server `/agent` WebSocket.
 // Field names and `type` discriminants match the server's Pydantic models exactly so JSON round-trips without a translation layer.

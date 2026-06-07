@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { createWriteStream, mkdirSync, type WriteStream } from "node:fs"
 import { join } from "node:path"
-import { platform } from "./platform"
+import { platform } from "../lifecycle/platform"
 
 export interface LogFile {
     path: string

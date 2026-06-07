@@ -1,5 +1,5 @@
-import type { ClientEvent, StreamingEvent, UserMessageEvent, CancelEvent, QuitEvent } from "../../schemas/activities"
-import type { WsLog } from "./ws-log"
+import type { ClientEvent, StreamingEvent, UserMessageEvent, CancelEvent, QuitEvent } from "../../../schemas/activities"
+import type { WsLog } from "../session/ws-log"
 
 export interface ConnectAgentWebSocketOptions {
     port: number

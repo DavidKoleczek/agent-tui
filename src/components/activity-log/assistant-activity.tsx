@@ -1,5 +1,5 @@
 import { memo } from "react"
-import { getMarkdownSyntaxStyle } from "../../lib/syntax-style"
+import { getMarkdownSyntaxStyle } from "../../lib/tui"
 import { type ActivityState } from "../../schemas/activities"
 
 interface AssistantActivityProps {

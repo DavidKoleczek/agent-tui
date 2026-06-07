@@ -1,4 +1,4 @@
-import type { LogFile } from "../log-file"
+import type { LogFile } from "../../session/server-log"
 
 // Abstraction over the OS-specific bits of resolving and downloading uv.
 export interface UvPlatform {

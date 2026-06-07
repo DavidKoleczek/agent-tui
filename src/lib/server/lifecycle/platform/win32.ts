@@ -1,5 +1,5 @@
 import { join } from "node:path"
-import type { LogFile } from "../log-file"
+import type { LogFile } from "../../session/server-log"
 import { createKillOnCloseJob, type JobHandle } from "./win32-job-object"
 import type { ProcessSupervisor, ServerPlatform, SupervisionHandle, UvPlatform } from "./types"
 

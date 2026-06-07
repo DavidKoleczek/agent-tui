@@ -1,13 +1,13 @@
 import { type ScrollBoxRenderable } from "@opentui/core"
 import { useBindings } from "@opentui/keymap/react"
 import { useRef } from "react"
-import { activityLogBindings } from "../../lib/keybindings"
+import { activityLogBindings } from "../../lib/tui"
 import { type SessionActivity } from "../../schemas/activities"
-import { AssistantActivity } from "./AssistantActivity"
-import { ReasoningActivity } from "./ReasoningActivity"
-import { ToolActivity } from "./ToolActivity"
-import { UserActivity } from "./UserActivity"
-import { ErrorActivity } from "./ErrorActivity"
+import { AssistantActivity } from "./assistant-activity"
+import { ReasoningActivity } from "./reasoning-activity"
+import { ToolActivity } from "./tool-activity"
+import { UserActivity } from "./user-activity"
+import { ErrorActivity } from "./error-activity"
 
 interface ActivityLogProps {
     activities: ReadonlyMap<string, SessionActivity>

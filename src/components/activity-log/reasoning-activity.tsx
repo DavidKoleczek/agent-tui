@@ -1,6 +1,6 @@
 import { TextAttributes } from "@opentui/core"
 import { memo } from "react"
-import { getReasoningMarkdownSyntaxStyle } from "../../lib/syntax-style"
+import { getReasoningMarkdownSyntaxStyle } from "../../lib/tui"
 import { type ActivityState } from "../../schemas/activities"
 
 interface ReasoningActivityProps {

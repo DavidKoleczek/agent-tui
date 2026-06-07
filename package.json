@@ -1,10 +1,10 @@
 {
     "name": "agent-tui",
-    "module": "src/index.tsx",
+    "module": "src/main.tsx",
     "type": "module",
     "private": true,
     "scripts": {
-        "dev": "bun run --watch src/index.tsx",
+        "dev": "bun run --watch src/main.tsx",
         "typecheck": "tsc --noEmit",
         "lint": "oxlint .",
         "lint:fix": "oxlint --fix .",

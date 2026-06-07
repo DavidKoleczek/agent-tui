@@ -1,22 +1,15 @@
-import { CliRenderEvents, createCliRenderer } from "@opentui/core"
-import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
-import { KeymapProvider } from "@opentui/keymap/react"
-import { createRoot } from "@opentui/react"
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { ActivityLog } from "./components/ActivityLog"
-import { type TextInputHandle, TextInput } from "./components/TextInput"
-import { useCtrlCExit } from "./hooks/use-ctrl-c-exit"
+import { ActivityLog, TextInput, type TextInputHandle } from "./components"
+import { useCtrlCExit } from "./hooks"
 import { createActivityStore } from "./lib/activity-store"
-import { startServer } from "./lib/server"
-import type { AgentWSClient } from "./lib/server/agent-ws-client"
-import { installVSCodeInputShims } from "./lib/vscode-shift-enter"
+import type { AgentWSClient } from "./lib/server/agent"
 
-interface AppProps {
+export interface AppProps {
     ws: Promise<AgentWSClient | null>
     onBeforeExit: () => void
 }
 
-function App({ ws, onBeforeExit }: AppProps) {
+export function App({ ws, onBeforeExit }: AppProps) {
     // Holds the list of Activities shown in the UI with a goal to keep state logic separate from React and prevent re-renders. Components subscribe to this.
     const logRef = useRef<(message: string) => void>(() => {})
     const store = useMemo(() => createActivityStore({ log: { warn: (m) => logRef.current(m) } }), [])
@@ -82,27 +75,3 @@ function App({ ws, onBeforeExit }: AppProps) {
         </box>
     )
 }
-
-// Runs the agent-server
-const server = startServer()
-
-const renderer = await createCliRenderer({ exitOnCtrlC: false })
-const keymap = createDefaultOpenTuiKeymap(renderer)
-const uninstallVSCodeShims = installVSCodeInputShims()
-
-let stopping = false
-const stopServer = (): void => {
-    if (stopping) return
-    stopping = true
-    void server.stop()
-}
-
-renderer.on(CliRenderEvents.DESTROY, stopServer)
-process.on("SIGINT", stopServer)
-process.on("SIGTERM", stopServer)
-
-createRoot(renderer).render(
-    <KeymapProvider keymap={keymap}>
-        <App ws={server.ws} onBeforeExit={uninstallVSCodeShims} />
-    </KeymapProvider>,
-)
