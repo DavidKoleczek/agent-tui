@@ -10,11 +10,14 @@ export interface TextInputHandle {
 interface TextInputProps {
     placeholder?: string
     onSubmit: (value: string) => void
-    canSubmit?: () => boolean
+    // Whether the agent connection is ready. While false, the input is greyed out and submissions are suppressed.
+    ready: boolean
     ref?: Ref<TextInputHandle>
 }
 
 const MAX_VISIBLE_ROWS = 10
+
+const WAITING_TEXT_COLOR = "#888888"
 
 // Plain Enter submits user message.
 // Shift+Enter, Ctrl+Enter, and Alt+Enter insert a newline when the terminal sends a distinct sequence
@@ -27,7 +30,7 @@ const KEY_BINDINGS = [
     { name: "return", meta: true, action: "newline" as const },
 ]
 
-export function TextInput({ placeholder, onSubmit, canSubmit, ref }: TextInputProps) {
+export function TextInput({ placeholder, onSubmit, ready, ref }: TextInputProps) {
     const textareaRef = useRef<TextareaRenderable | null>(null)
     const paste = usePasteShortening(textareaRef)
 
@@ -52,7 +55,7 @@ export function TextInput({ placeholder, onSubmit, canSubmit, ref }: TextInputPr
         const textarea = textareaRef.current
         if (!textarea) return
         // Gate before paste.expand() so a suppressed submit does no work and preserves the draft and paste state.
-        if (canSubmit && !canSubmit()) return
+        if (!ready) return
         const value = paste.expand()
         if (value.length === 0) return
         onSubmit(value)
@@ -67,6 +70,7 @@ export function TextInput({ placeholder, onSubmit, canSubmit, ref }: TextInputPr
             maxHeight={MAX_VISIBLE_ROWS + 2}
             border={["top", "bottom"]}
             borderStyle="rounded"
+            borderColor={ready ? undefined : WAITING_TEXT_COLOR}
             // Reserves space for the absolute prompt marker.
             paddingLeft={3}
             paddingRight={1}
@@ -74,7 +78,7 @@ export function TextInput({ placeholder, onSubmit, canSubmit, ref }: TextInputPr
             position="relative"
         >
             {/* Absolute keeps the marker out of flex sizing*/}
-            <text position="absolute" left={1} top={0}>
+            <text position="absolute" left={1} top={0} fg={ready ? undefined : WAITING_TEXT_COLOR}>
                 ❯
             </text>
             <textarea
@@ -87,6 +91,11 @@ export function TextInput({ placeholder, onSubmit, canSubmit, ref }: TextInputPr
                 onPaste={paste.onPaste}
                 width="100%"
                 maxHeight={MAX_VISIBLE_ROWS}
+                // Hold the cursor steady while launching; let it resume blinking once the connection is ready.
+                cursorStyle={{ style: "block", blinking: ready }}
+                textColor={ready ? undefined : WAITING_TEXT_COLOR}
+                focusedTextColor={ready ? undefined : WAITING_TEXT_COLOR}
+                placeholderColor={ready ? undefined : WAITING_TEXT_COLOR}
             />
         </box>
     )

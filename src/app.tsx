@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { ActivityLog, TextInput, type TextInputHandle } from "./components"
+import { ActivityLog, StatusLine, TextInput, type TextInputHandle } from "./components"
 import { useCtrlCExit } from "./hooks"
 import { createActivityStore } from "./lib/activity-store"
 import type { AgentWSClient } from "./lib/server/agent"
@@ -66,12 +66,11 @@ export function App({ ws, onBeforeExit }: AppProps) {
         [store],
     )
 
-    const canSubmit = useCallback(() => ready, [ready])
-
     return (
         <box flexDirection="column" flexGrow={1}>
             <ActivityLog activities={activities} />
-            <TextInput ref={inputRef} onSubmit={handleSubmit} canSubmit={canSubmit} />
+            <TextInput ref={inputRef} onSubmit={handleSubmit} ready={ready} />
+            <StatusLine ready={ready} />
         </box>
     )
 }
