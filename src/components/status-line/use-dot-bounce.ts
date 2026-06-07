@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 const FRAMES = [".  ", ".. ", "..."]
-const FRAME_INTERVAL_MS = 300
+const FRAME_INTERVAL_MS = 400
 
 // Drives the ping-pong dot animation. Returns the current padded frame while active, otherwise an empty string.
 // The interval only runs while active, so a connected app keeps no background timer and never re-renders from here.

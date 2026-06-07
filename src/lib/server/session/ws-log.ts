@@ -13,7 +13,7 @@ export interface WsLog {
 
 // Per-session websocket transcript log.
 export function createWsLog(cwd: string): WsLog {
-    const fileName = `agent-ws-${formatTimestamp(new Date())}-${randomUUID().slice(0, 8)}.log`
+    const fileName = `agent-ws-${formatTimestamp(new Date())}-${randomUUID().slice(0, 8)}.jsonl`
     const primary = join(cwd, ".agents", "logs")
     const fallback = join(platform.uv.cacheRoot, "agent-tui", "logs")
 
@@ -38,16 +38,15 @@ export function createWsLog(cwd: string): WsLog {
         )
     }
 
+    const line = (record: Record<string, unknown>): string => `${JSON.stringify(record)}\n`
+
     const format = (direction: "sent" | "recv", text: string): string => {
-        const marker = direction === "sent" ? ">> sent" : "<< recv"
-        const header = `${new Date().toISOString()} ${marker}`
-        let body: string
+        const time = new Date().toISOString()
         try {
-            body = JSON.stringify(JSON.parse(text), null, 2)
+            return line({ time, direction, payload: JSON.parse(text) })
         } catch {
-            body = `${text} (unparsed)`
+            return line({ time, direction, raw: text })
         }
-        return `${header}\n${body}\n\n`
     }
 
     return {
@@ -59,7 +58,7 @@ export function createWsLog(cwd: string): WsLog {
             enqueue(format("recv", text))
         },
         warn(message) {
-            enqueue(`${new Date().toISOString()} !! warn\n${message}\n\n`)
+            enqueue(line({ time: new Date().toISOString(), direction: "warn", message }))
         },
         close: async () => {
             await chain
