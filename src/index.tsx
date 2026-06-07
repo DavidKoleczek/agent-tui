@@ -8,11 +8,11 @@ import { type TextInputHandle, TextInput } from "./components/TextInput"
 import { useCtrlCExit } from "./hooks/use-ctrl-c-exit"
 import { createActivityStore } from "./lib/activity-store"
 import { startServer } from "./lib/server"
-import type { WsClient } from "./lib/server/ws-client"
+import type { AgentWSClient } from "./lib/server/agent-ws-client"
 import { installVSCodeInputShims } from "./lib/vscode-shift-enter"
 
 interface AppProps {
-    ws: Promise<WsClient | null>
+    ws: Promise<AgentWSClient | null>
     onBeforeExit: () => void
 }
 
@@ -24,7 +24,7 @@ function App({ ws, onBeforeExit }: AppProps) {
     const activities = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     // Ref to the TextInput component used to manage the user input handling logic outside of the component.
     const inputRef = useRef<TextInputHandle | null>(null)
-    const wsClientRef = useRef<WsClient | null>(null)
+    const agentWSClientRef = useRef<AgentWSClient | null>(null)
     const [ready, setReady] = useState(false)
 
     // Hook that registers a global keyboard listener and implements the correct behavior (described in the hook).
@@ -40,7 +40,7 @@ function App({ ws, onBeforeExit }: AppProps) {
         void ws.then((client) => {
             if (cancelled || client === null) return
             // Store the websocket client in a ref so it can be used in other parts of the app.
-            wsClientRef.current = client
+            agentWSClientRef.current = client
             // Forward reducer anomaly logs into this connection's transcript.
             logRef.current = (message) => client.warn(message)
             // Once the websocket is ready, we update the state to indicate "loading" is complete and the user can submit messages.
@@ -68,7 +68,7 @@ function App({ ws, onBeforeExit }: AppProps) {
             // When a submission happens, optimistically add the user's message to the store so it appears in the UI immediately,
             // then send it to the server via the websocket client.
             store.pushUserMessage(value)
-            wsClientRef.current?.sendUserMessage(value)
+            agentWSClientRef.current?.sendUserMessage(value)
         },
         [store],
     )

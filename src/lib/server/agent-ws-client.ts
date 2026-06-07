@@ -8,7 +8,7 @@ export interface ConnectAgentWebSocketOptions {
     log: WsLog
 }
 
-export interface WsClient {
+export interface AgentWSClient {
     isReady(): boolean
     subscribeReady(listener: () => void): () => void
     subscribeActivities(listener: (activity: StreamingEvent) => void): () => void
@@ -24,7 +24,7 @@ const CLOSE_GRACE_MS = 1_000
 // Single, eager websocket connection to agent-server's /agent endpoint.
 // Sends are silent no-ops when the socket is not OPEN.
 // The UI gates submission via isReady() and we explicitly don't surface "not ready yet" for now
-export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): WsClient {
+export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): AgentWSClient {
     const { port, workingDir, chatFile, log } = options
 
     const url = buildUrl(port, workingDir, chatFile)

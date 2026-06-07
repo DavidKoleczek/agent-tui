@@ -4,7 +4,7 @@ import { createLogFile, type LogFile } from "./log-file"
 import { pickFreePort } from "./port"
 import { spawnAgentServer, type ServerProcess } from "./spawn"
 import { resolveUv } from "./uv"
-import { connectAgentWebSocket, type WsClient } from "./ws-client"
+import { connectAgentWebSocket, type AgentWSClient } from "./agent-ws-client"
 import { createWsLog, type WsLog } from "./ws-log"
 
 export interface ServerHandle {
@@ -14,7 +14,7 @@ export interface ServerHandle {
     // Resolves with the websocket client once /healthz is ready and the socket constructor has been called,
     // or null if the server never reached the ready state.
     // Resolution does not imply the socket is OPEN. Consumers must observe `isReady()` for that.
-    ws: Promise<WsClient | null>
+    ws: Promise<AgentWSClient | null>
     // Idempotent. Awaits startup (if still in-flight), closes the websocket, kills the process, and flushes both log files.
     // Safe to call from multiple cleanup paths concurrently.
     stop(): Promise<void>
@@ -32,8 +32,8 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
 
     let stopping: Promise<void> | null = null
 
-    let resolveWs: (value: WsClient | null) => void = () => {}
-    const wsPromise: Promise<WsClient | null> = new Promise((resolve) => {
+    let resolveWs: (value: AgentWSClient | null) => void = () => {}
+    const wsPromise: Promise<AgentWSClient | null> = new Promise((resolve) => {
         resolveWs = resolve
     })
 
