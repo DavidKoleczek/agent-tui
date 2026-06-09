@@ -25,9 +25,7 @@ export function applyStreamingEvent(
     log: ReducerLog = noopLog,
 ): ReadonlyMap<string, SessionActivity> {
     switch (streamingEvent.type) {
-        case "ready":
-        case "turn_start":
-        case "turn_end":
+        case "status":
             // Lifecycle signals carry no activity; the store tracks only activities.
             return current
 

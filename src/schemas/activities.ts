@@ -84,16 +84,19 @@ export interface ActivityDelta {
     permission?: TaskPermission | null
 }
 
-export interface ReadyEvent {
-    type: "ready"
-}
+export type StatusId =
+    | "agent_starting"
+    | "agent_running"
+    | "agent_run_ended"
+    | "waiting_for_llm_response"
+    | "processing_llm_response"
+    | "executing_tool"
+    | "starting_new_turn"
 
-export interface TurnStartEvent {
-    type: "turn_start"
-}
-
-export interface TurnEndEvent {
-    type: "turn_end"
+// Reports the agent's current lifecycle phase. The `status_id` field identifies the phase.
+export interface StatusEvent {
+    type: "status"
+    status_id: StatusId
 }
 
 export interface ActivityCreatedEvent {
@@ -114,12 +117,6 @@ export interface ActivityUpdatedEvent {
     activity: SessionActivity
 }
 
-export type StreamingEvent =
-    | ActivityCreatedEvent
-    | ActivityDeltaEvent
-    | ActivityUpdatedEvent
-    | ReadyEvent
-    | TurnStartEvent
-    | TurnEndEvent
+export type StreamingEvent = ActivityCreatedEvent | ActivityDeltaEvent | ActivityUpdatedEvent | StatusEvent
 
 // endregion

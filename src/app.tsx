@@ -3,6 +3,7 @@ import { ActivityLog, StatusLine, TextInput, type TextInputHandle } from "./comp
 import { useCtrlCExit } from "./hooks"
 import { createActivityStore } from "./lib/activity-store"
 import type { AgentWSClient } from "./lib/server/agent"
+import type { StatusId } from "./schemas/activities"
 
 export interface AppProps {
     ws: Promise<AgentWSClient | null>
@@ -19,6 +20,8 @@ export function App({ ws, onBeforeExit }: AppProps) {
     const inputRef = useRef<TextInputHandle | null>(null)
     const agentWSClientRef = useRef<AgentWSClient | null>(null)
     const [ready, setReady] = useState(false)
+    // Latest server lifecycle status. Null means there is nothing to show (idle, or after agent_run_ended).
+    const [status, setStatus] = useState<StatusId | null>(null)
 
     // Hook that registers a global keyboard listener and implements the correct behavior (described in the hook).
     useCtrlCExit({
@@ -39,12 +42,18 @@ export function App({ ws, onBeforeExit }: AppProps) {
             // Once the websocket is ready, we update the state to indicate "loading" is complete and the user can submit messages.
             setReady(client.isReady())
             unsubscribes.push(
-                // Whenever the socket opens or closes, we update the ready state
+                // Whenever the socket opens or closes, we update the ready state.
                 client.subscribeReady(() => {
                     setReady(client.isReady())
+                    // A closed socket means the server is gone; drop any stale status so it cannot linger on reconnect.
+                    if (!client.isReady()) setStatus(null)
                 }),
                 // On each incoming StreamingEvent from the server, this feeds it into the store, which then updates the UI.
                 client.subscribeActivities((event) => {
+                    // Track the latest phase for the status line; agent_run_ended is a sentinel that clears the status.
+                    if (event.type === "status") {
+                        setStatus(event.status_id === "agent_run_ended" ? null : event.status_id)
+                    }
                     store.applyStreamingEvent(event)
                 }),
             )
@@ -70,7 +79,7 @@ export function App({ ws, onBeforeExit }: AppProps) {
         <box flexDirection="column" flexGrow={1}>
             <ActivityLog activities={activities} />
             <TextInput ref={inputRef} onSubmit={handleSubmit} ready={ready} />
-            <StatusLine ready={ready} />
+            <StatusLine ready={ready} status={status} />
         </box>
     )
 }
