@@ -112,7 +112,7 @@ function applyTaskDelta(activity: TaskActivity, delta: ActivityDelta, log: Reduc
         next = { ...next, arguments: { ...(next.arguments ?? {}), [key]: value } }
     }
 
-    // Append streamed tool output to `result`, treating a null result as the empty string.
+    // Append streamed task result to `result`, treating a null result as the empty string.
     const resultDelta = delta.result_delta
     if (resultDelta !== undefined && resultDelta !== null && resultDelta !== "") {
         next = { ...next, result: (next.result ?? "") + resultDelta }

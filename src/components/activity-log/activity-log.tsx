@@ -5,7 +5,7 @@ import { activityLogBindings } from "../../lib/tui"
 import { type SessionActivity } from "../../schemas/activities"
 import { AssistantActivity } from "./assistant-activity"
 import { ReasoningActivity } from "./reasoning-activity"
-import { ToolActivity } from "./tool-activity"
+import { TaskActivity } from "./task-activity"
 import { UserActivity } from "./user-activity"
 import { ErrorActivity } from "./error-activity"
 
@@ -56,12 +56,12 @@ export function ActivityLog({ activities }: ActivityLogProps) {
                         )
                     case "task":
                         return (
-                            <ToolActivity
+                            <TaskActivity
                                 key={activity.id}
                                 index={index}
-                                toolName={activity.name}
-                                toolArguments={activity.arguments ?? {}}
-                                toolOutput={activity.result ?? ""}
+                                taskName={activity.name}
+                                taskArguments={activity.arguments ?? {}}
+                                taskResult={activity.result ?? ""}
                             />
                         )
                     case "assistant":
