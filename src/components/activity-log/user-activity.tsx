@@ -1,14 +1,14 @@
+import { Colors } from "../../lib/constants"
+
 interface UserActivityProps {
     content: string
     index: number
 }
 
-const BACKGROUND_COLOR = "#2da4f481"
-
 export function UserActivity({ content, index }: UserActivityProps) {
     return (
         <box
-            backgroundColor={BACKGROUND_COLOR}
+            backgroundColor={Colors.accentTranslucent}
             paddingTop={1}
             paddingBottom={1}
             paddingLeft={2}

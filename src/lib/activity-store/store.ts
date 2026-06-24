@@ -11,6 +11,8 @@ export interface ActivityStore {
     getSnapshot: () => ReadonlyMap<string, SessionActivity>
     pushUserMessage: (content: string) => void
     applyStreamingEvent: (event: StreamingEvent) => void
+    // Replaces the entire activity map with a known set, used when resuming a prior session.
+    seedActivities: (activities: readonly SessionActivity[]) => void
     reset: () => void
 }
 
@@ -57,6 +59,11 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
         // which either returns a new map, or the current one, and then notifies subscribers.
         applyStreamingEvent(event) {
             notify(applyStreamingEvent(event, activities, log))
+        },
+        seedActivities(seed) {
+            const next = new Map<string, SessionActivity>()
+            for (const activity of seed) next.set(activity.id, activity)
+            notify(next)
         },
         reset() {
             if (activities.size === 0) return

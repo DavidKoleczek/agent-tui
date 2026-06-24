@@ -1,15 +1,15 @@
+import { Colors } from "../../lib/constants"
+
 interface ErrorActivityProps {
     error_type: string
     detail: string
     index: number
 }
 
-const BACKGROUND_COLOR = "#ff4d4d"
-
 export function ErrorActivity({ error_type, detail, index }: ErrorActivityProps) {
     return (
         <box
-            backgroundColor={BACKGROUND_COLOR}
+            backgroundColor={Colors.errorBackground}
             paddingTop={1}
             paddingBottom={1}
             paddingLeft={2}

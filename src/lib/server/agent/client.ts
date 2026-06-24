@@ -4,7 +4,8 @@ import type { WsLog } from "../session/ws-log"
 export interface ConnectAgentWebSocketOptions {
     port: number
     workingDir: string
-    chatFile: string
+    // Absolute path to an existing SQLite session database to resume. Omit to let the server create a new session.
+    sessionDatabase?: string
     log: WsLog
 }
 
@@ -25,9 +26,9 @@ const CLOSE_GRACE_MS = 1_000
 // Sends are silent no-ops when the socket is not OPEN.
 // The UI gates submission via isReady() and we explicitly don't surface "not ready yet" for now
 export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): AgentWSClient {
-    const { port, workingDir, chatFile, log } = options
+    const { port, workingDir, sessionDatabase, log } = options
 
-    const url = buildUrl(port, workingDir, chatFile)
+    const url = buildUrl(port, workingDir, sessionDatabase)
     const ws = new WebSocket(url)
 
     const readyListeners = new Set<() => void>()
@@ -120,8 +121,9 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
     }
 }
 
-function buildUrl(port: number, workingDir: string, chatFile: string): string {
-    const params = new URLSearchParams({ working_dir: workingDir, chat_file: chatFile })
+function buildUrl(port: number, workingDir: string, sessionDatabase: string | undefined): string {
+    const params = new URLSearchParams({ working_dir: workingDir })
+    if (sessionDatabase !== undefined) params.set("session_database", sessionDatabase)
     return `ws://127.0.0.1:${port}/agent?${params.toString()}`
 }
 

@@ -1,17 +1,23 @@
 import { connectAgentWebSocket, type AgentWSClient } from "./agent"
 import { pickFreePort, resolveUv, spawnAgentServer, type ServerProcess, waitForHealthz } from "./lifecycle"
-import { createLogFile, createWsLog, resolveChatFile, type LogFile, type WsLog } from "./session"
+import { createLogFile, createWsLog, type LogFile, type WsLog } from "./session"
 
 export interface ServerHandle {
-    // Resolves with the live process once spawn succeeds, or null if startup failed.
-    // Failures never reject; all errors are written to the log file.
+    // Resolves with the live process.
     process: Promise<ServerProcess | null>
-    // Resolves with the websocket client once /healthz is ready and the socket constructor has been called,
-    // or null if the server never reached the ready state.
+    // Resolves with the websocket client for the initial (new) session once /healthz is ready and the socket
+    // constructor has been called, or null if the server never reached the ready state.
     // Resolution does not imply the socket is OPEN. Consumers must observe `isReady()` for that.
     ws: Promise<AgentWSClient | null>
-    // Idempotent. Awaits startup (if still in-flight), closes the websocket, kills the process, and flushes both log files.
-    // Safe to call from multiple cleanup paths concurrently.
+    // Directory the server is operating in. Needed when resuming a session.
+    workingDir: string
+    // Base URL for the server's HTTP endpoints (e.g. /resume), or null until the server is ready.
+    httpBaseUrl(): string | null
+    // Opens a fresh websocket connection, optionally bound to an existing session database to resume it.
+    // The previously active client (if any) is closed first so only one socket is live at a time.
+    // Returns null if the server is not ready yet.
+    createClient(sessionDatabase?: string): AgentWSClient | null
+    // Idempotent. Awaits startup (if still in-flight), closes the active websocket, kills the process, and flushes both log files.
     stop(): Promise<void>
     // Path of the per-session server-stdout log file, exposed for diagnostics.
     logPath: string
@@ -26,6 +32,22 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
     const wsLog: WsLog = createWsLog(cwd)
 
     let stopping: Promise<void> | null = null
+    // Set once the server is healthy; gates HTTP base URL and websocket (re)connection.
+    let serverPort: number | null = null
+    // The single live websocket client. Swapped out by createClient and closed by stop().
+    let currentClient: AgentWSClient | null = null
+
+    const connect = (sessionDatabase?: string): AgentWSClient | null => {
+        if (serverPort === null) return null
+        if (currentClient !== null) {
+            const previous = currentClient
+            currentClient = null
+            void previous.close()
+        }
+        const client = connectAgentWebSocket({ port: serverPort, workingDir: cwd, sessionDatabase, log: wsLog })
+        currentClient = client
+        return client
+    }
 
     let resolveWs: (value: AgentWSClient | null) => void = () => {}
     const wsPromise: Promise<AgentWSClient | null> = new Promise((resolve) => {
@@ -44,15 +66,9 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
             if (health.ok) {
                 log.write(`[agent-tui] healthz ready after ${health.elapsedMs}ms (attempts=${health.attempts})\n`)
                 try {
-                    const chatFile = resolveChatFile(cwd)
-                    log.write(`[agent-tui] chat_file=${chatFile}\n`)
+                    serverPort = port
                     log.write(`[agent-tui] ws_log=${wsLog.path}\n`)
-                    const client = connectAgentWebSocket({
-                        port,
-                        workingDir: cwd,
-                        chatFile,
-                        log: wsLog,
-                    })
+                    const client = connect()
                     resolveWs(client)
                 } catch (err) {
                     log.write(`[agent-tui] ws connect failed: ${(err as Error).stack ?? (err as Error).message}\n`)
@@ -76,9 +92,12 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
     const stop = (): Promise<void> => {
         if (stopping !== null) return stopping
         stopping = (async () => {
-            const [proc, ws] = await Promise.all([processPromise, wsPromise])
-            if (ws !== null) {
-                await ws.close()
+            const proc = await processPromise
+            // Ensure the initial connection attempt has settled before tearing down.
+            await wsPromise
+            if (currentClient !== null) {
+                await currentClient.close()
+                currentClient = null
             }
             if (proc !== null) {
                 await proc.kill()
@@ -92,6 +111,9 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
     return {
         process: processPromise,
         ws: wsPromise,
+        workingDir: cwd,
+        httpBaseUrl: () => (serverPort === null ? null : `http://127.0.0.1:${serverPort}`),
+        createClient: (sessionDatabase) => connect(sessionDatabase),
         stop,
         logPath: log.path,
         wsLogPath: wsLog.path,

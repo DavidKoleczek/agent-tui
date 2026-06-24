@@ -67,6 +67,17 @@ export interface ErrorActivity extends ActivityBase {
 
 export type SessionActivity = UserActivity | AssistantActivity | ReasoningActivity | TaskActivity | ErrorActivity
 
+// A persisted activity together with its ordering metadata, as returned by the server's `GET /resume` endpoint.
+// Mirrors agent-server/src/agent_server/schemas/session.py:SessionActivityRecord.
+export interface SessionActivityRecord {
+    id: string
+    position: number
+    timestamp: IsoTimestamp
+    type: string
+    state: ActivityState
+    activity: SessionActivity
+}
+
 // endregion
 
 // region: Streaming Events

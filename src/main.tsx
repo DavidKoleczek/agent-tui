@@ -26,6 +26,6 @@ process.on("SIGTERM", stopServer)
 
 createRoot(renderer).render(
     <KeymapProvider keymap={keymap}>
-        <App ws={server.ws} onBeforeExit={uninstallVSCodeShims} />
+        <App server={server} onBeforeExit={uninstallVSCodeShims} />
     </KeymapProvider>,
 )

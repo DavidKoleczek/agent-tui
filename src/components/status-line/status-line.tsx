@@ -1,5 +1,6 @@
 import type { StatusId } from "../../schemas/activities"
 import { useDotBounce } from "./use-dot-bounce"
+import { Colors } from "../../lib/constants"
 
 interface StatusLineProps {
     // Whether the agent connection is ready. While false, the line shows the out-of-band "Server initializing" label.
@@ -7,8 +8,6 @@ interface StatusLineProps {
     // The latest server lifecycle status, or null when there is nothing to show (idle or after agent_run_ended).
     status: StatusId | null
 }
-
-const STATUS_TEXT_COLOR = "#2EA6E0"
 
 // Shown while the connection is not ready.
 // This status lives outside the server-sent set and signals that the agent server has not started yet.
@@ -37,7 +36,7 @@ export function StatusLine({ ready, status }: StatusLineProps) {
     return (
         // Fixed-height row that is always present so the indicator can appear and clear without shifting the layout.
         <box width="100%" height={1} flexShrink={0} paddingLeft={1}>
-            <text fg={STATUS_TEXT_COLOR}>{label === "" ? "" : `${label}${dots}`}</text>
+            <text fg={Colors.accent}>{label === "" ? "" : `${label}${dots}`}</text>
         </box>
     )
 }

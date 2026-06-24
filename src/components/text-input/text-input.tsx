@@ -1,6 +1,7 @@
 import { type TextareaRenderable } from "@opentui/core"
 import { type Ref, useImperativeHandle, useRef } from "react"
 import { usePasteShortening } from "./use-paste-shortening"
+import { Colors } from "../../lib/constants"
 
 export interface TextInputHandle {
     clear: () => void
@@ -12,12 +13,12 @@ interface TextInputProps {
     onSubmit: (value: string) => void
     // Whether the agent connection is ready. While false, the input is greyed out and submissions are suppressed.
     ready: boolean
+    // Whether the textarea holds keyboard focus. Released when another region (e.g. the control tower) is focused.
+    focused: boolean
     ref?: Ref<TextInputHandle>
 }
 
 const MAX_VISIBLE_ROWS = 10
-
-const WAITING_TEXT_COLOR = "#888888"
 
 // Plain Enter submits user message.
 // Shift+Enter, Ctrl+Enter, and Alt+Enter insert a newline when the terminal sends a distinct sequence
@@ -30,7 +31,7 @@ const KEY_BINDINGS = [
     { name: "return", meta: true, action: "newline" as const },
 ]
 
-export function TextInput({ placeholder, onSubmit, ready, ref }: TextInputProps) {
+export function TextInput({ placeholder, onSubmit, ready, focused, ref }: TextInputProps) {
     const textareaRef = useRef<TextareaRenderable | null>(null)
     const paste = usePasteShortening(textareaRef)
 
@@ -70,7 +71,7 @@ export function TextInput({ placeholder, onSubmit, ready, ref }: TextInputProps)
             maxHeight={MAX_VISIBLE_ROWS + 2}
             border={["top", "bottom"]}
             borderStyle="rounded"
-            borderColor={ready ? undefined : WAITING_TEXT_COLOR}
+            borderColor={ready ? undefined : Colors.mutedText}
             // Reserves space for the absolute prompt marker.
             paddingLeft={3}
             paddingRight={1}
@@ -78,12 +79,12 @@ export function TextInput({ placeholder, onSubmit, ready, ref }: TextInputProps)
             position="relative"
         >
             {/* Absolute keeps the marker out of flex sizing*/}
-            <text position="absolute" left={1} top={0} fg={ready ? undefined : WAITING_TEXT_COLOR}>
+            <text position="absolute" left={1} top={0} fg={ready ? undefined : Colors.mutedText}>
                 ❯
             </text>
             <textarea
                 ref={textareaRef}
-                focused
+                focused={focused}
                 placeholder={placeholder}
                 wrapMode="word"
                 keyBindings={KEY_BINDINGS}
@@ -93,9 +94,9 @@ export function TextInput({ placeholder, onSubmit, ready, ref }: TextInputProps)
                 maxHeight={MAX_VISIBLE_ROWS}
                 // Hold the cursor steady while launching; let it resume blinking once the connection is ready.
                 cursorStyle={{ style: "block", blinking: ready }}
-                textColor={ready ? undefined : WAITING_TEXT_COLOR}
-                focusedTextColor={ready ? undefined : WAITING_TEXT_COLOR}
-                placeholderColor={ready ? undefined : WAITING_TEXT_COLOR}
+                textColor={ready ? undefined : Colors.mutedText}
+                focusedTextColor={ready ? undefined : Colors.mutedText}
+                placeholderColor={ready ? undefined : Colors.mutedText}
             />
         </box>
     )
