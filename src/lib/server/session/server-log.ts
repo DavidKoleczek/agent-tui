@@ -29,10 +29,12 @@ export function createLogFile(cwd: string): LogFile {
     return {
         path: opened.path,
         write(text) {
+            const prefix = `[${new Date().toISOString()}] `
+            const stamped = prefix + text.replace(/\n(?=[^\n])/g, `\n${prefix}`)
             chain = chain.then(
                 () =>
                     new Promise<void>((resolve) => {
-                        if (stream.write(text)) {
+                        if (stream.write(stamped)) {
                             resolve()
                         } else {
                             stream.once("drain", () => resolve())

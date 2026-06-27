@@ -28,6 +28,9 @@ export interface ServerHandle {
 // Boots the agent-server lifecycle without blocking the caller.
 // Errors during resolution, spawn, or health check are caught and recorded in the per-session log
 export function startServer(cwd: string = process.cwd()): ServerHandle {
+    const startedAt = Date.now()
+    const sinceStart = (): number => Date.now() - startedAt
+
     const log: LogFile = createLogFile(cwd)
     const wsLog: WsLog = createWsLog(cwd)
 
@@ -44,7 +47,13 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
             currentClient = null
             void previous.close()
         }
-        const client = connectAgentWebSocket({ port: serverPort, workingDir: cwd, sessionDatabase, log: wsLog })
+        const client = connectAgentWebSocket({
+            port: serverPort,
+            workingDir: cwd,
+            sessionDatabase,
+            log: wsLog,
+            serverLog: log,
+        })
         currentClient = client
         return client
     }
@@ -56,10 +65,16 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
 
     const processPromise: Promise<ServerProcess | null> = (async () => {
         try {
+            const uvStartedAt = Date.now()
             const uv = await resolveUv()
-            log.write(`[agent-tui] uv resolved: ${uv.path} (source=${uv.source}, version=${uv.version})\n`)
+            log.write(
+                `[agent-tui] uv resolved: ${uv.path} (source=${uv.source}, version=${uv.version}) ` +
+                    `in ${Date.now() - uvStartedAt}ms\n`,
+            )
 
+            const portStartedAt = Date.now()
             const port = await pickFreePort()
+            log.write(`[agent-tui] free port ${port} picked in ${Date.now() - portStartedAt}ms\n`)
             const proc = spawnAgentServer({ uvPath: uv.path, port, cwd, log })
 
             const health = await waitForHealthz({ port })
@@ -69,6 +84,16 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
                     serverPort = port
                     log.write(`[agent-tui] ws_log=${wsLog.path}\n`)
                     const client = connect()
+                    if (client !== null) {
+                        // The socket opening is the moment the TUI can first send a message; log it with total elapsed from start.
+                        let readyLogged = false
+                        const stopReadyLog = client.subscribeReady(() => {
+                            if (readyLogged || !client.isReady()) return
+                            readyLogged = true
+                            log.write(`[agent-tui] ready to send (websocket open) ${sinceStart()}ms after start\n`)
+                            stopReadyLog()
+                        })
+                    }
                     resolveWs(client)
                 } catch (err) {
                     log.write(`[agent-tui] ws connect failed: ${(err as Error).stack ?? (err as Error).message}\n`)
