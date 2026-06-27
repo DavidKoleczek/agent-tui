@@ -1,7 +1,3 @@
-// Shared color palette for the TUI. Use these semantic tokens instead of inline hex literals so colors
-// stay consistent across components and can be adjusted in one place.
-//
-// The syntax highlighting theme lives separately in `src/lib/tui/syntax-style.ts` and is not part of this palette.
 export const Colors = {
     // Subtle separator/border lines, e.g. the control tower frame.
     border: "#444444",
@@ -20,3 +16,9 @@ export const Colors = {
     // Background for task (tool call) activity rows.
     taskBackground: "#1a1a1a",
 } as const
+
+// Lines advanced per mouse-wheel tick in the activity log.
+export const DEFAULT_SCROLL_SPEED = 5
+
+// Minimum scrollbar thumb height in terminal cells.
+export const MIN_SCROLLBAR_THUMB_CELLS = 1.4
