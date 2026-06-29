@@ -1,5 +1,6 @@
 import type { LogFile } from "../session/server-log"
 import { platform } from "./platform"
+import { uvSandboxEnv } from "./uv"
 
 export interface SpawnAgentServerOptions {
     uvPath: string
@@ -67,7 +68,7 @@ export function spawnAgentServer(options: SpawnAgentServerOptions): ServerProces
         stdin: "ignore",
         stdout: "pipe",
         stderr: "pipe",
-        env: { ...process.env, PYTHONUNBUFFERED: "1" },
+        env: { ...process.env, PYTHONUNBUFFERED: "1", ...uvSandboxEnv() },
         ...platform.supervisor.spawnOptions(),
     })
 

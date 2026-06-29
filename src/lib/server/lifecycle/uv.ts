@@ -18,6 +18,17 @@ function uvRoot(): string {
     return join(MANAGED_ROOT, "uv")
 }
 
+// Pins uv's runtime dirs under the managed root so nothing the TUI runs through uv lands in the user's global uv
+// state or on their PATH (UV_TOOL_BIN_DIR otherwise defaults to a directory uv expects to be on PATH).
+export function uvSandboxEnv(): Record<string, string> {
+    return {
+        UV_CACHE_DIR: join(MANAGED_ROOT, "cache"),
+        UV_TOOL_DIR: join(MANAGED_ROOT, "tools"),
+        UV_TOOL_BIN_DIR: join(MANAGED_ROOT, "bin"),
+        UV_PYTHON_INSTALL_DIR: join(MANAGED_ROOT, "python"),
+    }
+}
+
 // Version-scoped cache directory for the managed uv binary.
 // Scoping the path by version means a UV_VERSION bump resolves to a fresh directory, which is what makes a version change trigger a re-download.
 function cacheDir(): string {
