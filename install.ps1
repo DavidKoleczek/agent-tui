@@ -14,8 +14,9 @@ if (-not [Environment]::Is64BitOperatingSystem -or $env:PROCESSOR_ARCHITECTURE -
     throw "agent-tui currently supports Windows x64 only."
 }
 
-# Parse explicitly so the result does not depend on the content type the release asset is served with.
-$manifest = (Invoke-WebRequest -Uri $ManifestUrl -UseBasicParsing).Content | ConvertFrom-Json
+$raw = (Invoke-WebRequest -Uri $ManifestUrl -UseBasicParsing).Content
+if ($raw -is [byte[]]) { $raw = [System.Text.Encoding]::UTF8.GetString($raw) }
+$manifest = $raw | ConvertFrom-Json
 $asset = $manifest.platforms.'windows-x64'
 if (-not $asset -or -not $asset.url -or -not $asset.sha256) {
     throw "could not read the windows-x64 asset from the release manifest."
