@@ -2,6 +2,7 @@
 reference/
 .agents/sessions/
 .agents/logs/
+notes/
 
 # OpenTUI auto-generated
 # dependencies (bun install)

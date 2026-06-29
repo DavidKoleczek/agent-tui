@@ -4,6 +4,10 @@ import { join } from "node:path"
 // The single root every runtime artifact lives under.
 export const MANAGED_ROOT = join(homedir(), ".agents", "tui")
 
+// APP_VERSION is replaced at build time by `bun build --define`, but is absent in dev
+declare const APP_VERSION: string | undefined
+export const appVersion: string = typeof APP_VERSION === "string" && APP_VERSION.length > 0 ? APP_VERSION : "0.0.0-dev"
+
 export const Colors = {
     // Subtle separator/border lines, e.g. the control tower frame.
     border: "#444444",

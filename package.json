@@ -5,6 +5,7 @@
     "private": true,
     "scripts": {
         "dev": "bun run --watch src/main.tsx",
+        "build": "bun run scripts/build.ts",
         "typecheck": "tsc --noEmit",
         "lint": "oxlint .",
         "lint:fix": "oxlint --fix .",

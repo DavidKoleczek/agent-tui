@@ -3,8 +3,14 @@ import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
 import { KeymapProvider } from "@opentui/keymap/react"
 import { createRoot } from "@opentui/react"
 import { App } from "./app"
+import { runPreBootCli } from "./cli"
 import { installVSCodeInputShims } from "./lib/tui"
 import { startServer } from "./lib/server"
+
+// Handle pre-boot flags like --version
+if (runPreBootCli(process.argv)) {
+    process.exit(0)
+}
 
 // Runs the agent-server
 const server = startServer()

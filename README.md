@@ -14,36 +14,23 @@ An AI agent TUI built using OpenTUI.
 > This library is in early development and subject to change.
 
 
-## List of Features
-
-These are the features at I view as necessary for moving over my development.
-
-- First class Windows support
-- Skills: .github/skills, .claude/skills, or .agents/skills
-- Multiple models, with seamless swap in the middle of the conversation
-- Bash tool that handles background tasks well
-  - General system for spawning background tasks that live in the context
-- Seamless stop, resume, and steering
-- Computer use mode
-- Conversations as files, knows how to explore
-- Bypass permissions is the default mode, with smart restrictions
-- Defining subagents, which can be run in parallel
-  - Ability to choose what context is passed (just from caller, last x messages, full history)
-- Infinite chat by default
-- Good plan mode
-  - Summarizes plan, but gives a link to the full plan
-  - Critique of plans with other model
-- Verifier "mode" - define criteria, and it iterates until its done
-- Ability to use ! to send commands
-- Teacher mode - does not implement, but instead explains.
-- Built in file type handling for the read tool: pdf, docx, excel, etc
-- Continual chat title refinement
-- Integration with different apps (like Fusion) - App interaction protocol
-- VSCode integration
-- /messages - Dumps the current state/history that would be used for the next message being sent to the model into a temp file that is linked.
-
-
 ## Installation
+
+Supported platforms are Windows and Linux x64.
+
+Powershell (Windows):
+
+```powershell
+irm https://github.com/DavidKoleczek/agent-tui/releases/latest/download/install.ps1 | iex
+```
+
+Linux:
+
+```bash
+curl -fsSL https://github.com/DavidKoleczek/agent-tui/releases/latest/download/install.sh | bash
+```
+
+Launch with `agent`!
 
 ### Shift+Enter for Newlines on Windows Terminal
 
@@ -124,9 +111,3 @@ Open the repo in VSCode and accept the workspace recommendations, or install man
 
 `.github/hooks/hooks.json` registers an `agentStop` hook that runs `.github/hooks/agent-stop.ts` after every agent turn. 
 The script runs `bun run fmt`, `bun run lint:fix`, and `bun run check` in order. If any step fails, the hook emits a `block` decision so the failing output is fed back to the agent as a new turn for it to fix before yielding.
-
-
-## Todos
-
-- Figure out builds
-
