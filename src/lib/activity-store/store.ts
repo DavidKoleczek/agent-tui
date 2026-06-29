@@ -1,0 +1,73 @@
+/* Stores a list of SessionActivity objects.
+The webserver streams StreamingEvents which will be converted into SessionActivities as they come in.
+*/
+
+import { type SessionActivity, type UserActivity, type StreamingEvent } from "../../schemas/activities"
+import { nowIso } from "../../schemas/branded-types"
+import { applyStreamingEvent, type ReducerLog, noopLog, setActivity } from "./reducer"
+
+export interface ActivityStore {
+    subscribe: (listener: () => void) => () => void
+    getSnapshot: () => ReadonlyMap<string, SessionActivity>
+    pushUserMessage: (content: string) => void
+    applyStreamingEvent: (event: StreamingEvent) => void
+    // Replaces the entire activity map with a known set, used when resuming a prior session.
+    seedActivities: (activities: readonly SessionActivity[]) => void
+    reset: () => void
+}
+
+export interface CreateActivityStoreOptions {
+    // Sink for protocol anomalies surfaced by the reducer. Defaults to a no-op.
+    log?: ReducerLog
+}
+
+export function createActivityStore(options: CreateActivityStoreOptions = {}): ActivityStore {
+    const log = options.log ?? noopLog
+    let activities: ReadonlyMap<string, SessionActivity> = new Map()
+    const listeners = new Set<() => void>()
+
+    const notify = (next: ReadonlyMap<string, SessionActivity>): void => {
+        // Reducer returns the current map when an event does not change the activity state.
+        // Otherwise, it must create a new map.
+        if (next === activities) return
+        activities = next
+        for (const listener of listeners) listener()
+    }
+
+    return {
+        // subscribe and getSnapshot are used by React's useSyncExternalStore to read and re-render on changes.
+        subscribe(listener) {
+            listeners.add(listener)
+            return () => {
+                listeners.delete(listener)
+            }
+        },
+        getSnapshot() {
+            return activities
+        },
+        pushUserMessage(content) {
+            const userActivity: UserActivity = {
+                id: crypto.randomUUID(),
+                type: "user",
+                state: "complete",
+                timestamp: nowIso(),
+                content,
+            }
+            notify(setActivity(activities, userActivity))
+        },
+        // Takes a StreamingEvent, runs it through the applyStreamingEvent reducer
+        // which either returns a new map, or the current one, and then notifies subscribers.
+        applyStreamingEvent(event) {
+            notify(applyStreamingEvent(event, activities, log))
+        },
+        seedActivities(seed) {
+            const next = new Map<string, SessionActivity>()
+            for (const activity of seed) next.set(activity.id, activity)
+            notify(next)
+        },
+        reset() {
+            if (activities.size === 0) return
+            notify(new Map())
+        },
+    }
+}

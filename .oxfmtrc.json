@@ -1,0 +1,9 @@
+{
+    "$schema": "./node_modules/oxfmt/configuration_schema.json",
+    "semi": false,
+    "printWidth": 120,
+    "tabWidth": 4,
+    "useTabs": false,
+    "sortPackageJson": false,
+    "ignorePatterns": ["reference/**", "node_modules/**", "dist/**", "out/**", "bun.lock", "**/*.md"]
+}

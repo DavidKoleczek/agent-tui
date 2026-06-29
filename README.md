@@ -5,70 +5,109 @@
     <p align="center">Terminal user interface for AI agents built on <a href="https://github.com/DavidKoleczek/agent-core">agent-core</a>.</p>
 </p>
 <p align="center">
-    <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv"></a>
-    <a href="https://github.com/astral-sh/ty"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json" alt="ty"></a>
-    <a href="https://pypi.org/project/agent-tui/"><img src="https://img.shields.io/pypi/v/agent-tui" alt="PyPI"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
-A [Textual](https://textual.textualize.io/)-based terminal interface for interacting with AI agents. Built on [agent-core](https://github.com/DavidKoleczek/agent-core) and [InteropRouter](https://github.com/DavidKoleczek/interop-router) for unified model provider support.
+An AI agent TUI built using OpenTUI.
 
 > [!NOTE]
 > This library is in early development and subject to change.
 
 
-## Usage
+## Installation
 
-Ensure `OPENAI_API_KEY` is set in your environment.
+Supported platforms are Windows and Linux x64.
 
-Run directly from PyPI:
+Powershell (Windows):
 
-```bash
-uvx agent-tui
+```powershell
+irm https://github.com/DavidKoleczek/agent-tui/releases/latest/download/install.ps1 | iex
 ```
 
-Or if installed locally:
+Linux:
 
 ```bash
-uv run agent-tui
+curl -fsSL https://github.com/DavidKoleczek/agent-tui/releases/latest/download/install.sh | bash
 ```
 
-Or run directly with Textual:
+Launch with `agent`!
 
-```bash
-uv run textual run src.agent_tui.app:AgentApp
+### Shift+Enter for Newlines on Windows Terminal
+
+By default, not all Windows terminals send modifier keys with Enter by default. You may need to configure your terminal to send Shift+Enter as an escape sequence.
+
+Open `settings.json` at:
+
 ```
+%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
+```
+
+Add this entry to the root-level `actions` array:
+
+```json
+{
+    "command": {
+        "action": "sendInput",
+        "input": "\u001b[13;2u"
+    },
+    "id": "User.sendInput.ShiftEnter"
+}
+```
+
+Add this entry to the root-level `keybindings` array:
+
+```json
+{
+    "keys": "shift+enter",
+    "id": "User.sendInput.ShiftEnter"
+}
+```
+
+Save and restart Windows Terminal or open a new tab.
 
 
 ## Development
 
 ### Prerequisites
 
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- [prek](https://github.com/j178/prek/blob/master/README.md#installation)
+- [bun](https://github.com/oven-sh/bun)
 
-### Setup
+### Install
 
-Create uv virtual environment and install dependencies:
-
-```bash
-uv sync --frozen --all-groups
-```
-
-Set up git hooks:
+To install dependencies:
 
 ```bash
-prek install
+bun install
 ```
 
-To update dependencies (updates the lock file):
+To run:
 
 ```bash
-uv sync --all-groups
+bun dev
 ```
 
-Run formatting, linting, and type checking:
+To validate changes (typecheck, format, lint):
 
 ```bash
-uv run ruff format && uv run ruff check --fix && uv run ty check
+bun run check
 ```
+
+To auto-fix formatting and lint issues:
+
+```bash
+bun run fmt
+bun run lint:fix
+```
+
+### Recommended VSCode extensions
+
+Open the repo in VSCode and accept the workspace recommendations, or install manually:
+
+- `oxc.oxc-vscode` for `oxlint` diagnostics and `oxfmt` formatting
+- `EditorConfig.EditorConfig` for `.editorconfig` support
+- `oven.bun-vscode` for the Bun runtime and debugger
+
+### Agent Hooks
+
+`.github/hooks/hooks.json` registers an `agentStop` hook that runs `.github/hooks/agent-stop.ts` after every agent turn. 
+The script runs `bun run fmt`, `bun run lint:fix`, and `bun run check` in order. If any step fails, the hook emits a `block` decision so the failing output is fed back to the agent as a new turn for it to fix before yielding.

@@ -1,18 +1,44 @@
 {
-    "[python]": {
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit",
-            "source.organizeImports": "explicit"
-        },
-        "editor.defaultFormatter": "charliermarsh.ruff"
+    "oxc.enable": true,
+    "oxc.enable.oxlint": true,
+    "oxc.enable.oxfmt": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.codeActionsOnSave": {
+        "source.format.oxc": "always",
+        "source.fixAll.oxc": "always"
     },
-    "notebook.formatOnSave.enabled": true,
-    "notebook.codeActionsOnSave": {
-        "notebook.source.fixAll": "explicit",
-        "notebook.source.organizeImports": "explicit"
+    "[javascript]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode"
     },
-    "python.languageServer": "None",
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "[javascriptreact]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode"
+    },
+    // Skip FS change events for the vendored reference sources; they never need to trigger reloads.
+    "files.watcherExclude": {
+        "**/reference/**": true
+    },
+    // Keep workspace search focused on first-party code only.
+    "search.exclude": {
+        "reference": true
+    },
+    // Don't auto-create tsc build/watch tasks from the many nested tsconfigs under reference/.
+    "js/ts.tsc.autoDetect": "off",
+    // Prevent auto-import suggestions from pulling symbols out of the reference sources.
+    "js/ts.preferences.autoImportFileExcludePatterns": ["**/reference/**"],
+    // Avoid scanning package.json files in nested reference projects for auto-import candidates.
+    "js/ts.preferences.includePackageJsonAutoImports": "off",
+    // Disable the tsconfig JSON schema for reference tsconfigs so missing types (e.g. "three") aren't flagged.
+    "json.schemas": [
+        {
+            "fileMatch": ["reference/**/tsconfig*.json"],
+            "schema": {}
+        }
+    ]
 }

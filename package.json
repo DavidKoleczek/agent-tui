@@ -1,0 +1,33 @@
+{
+    "name": "agent-tui",
+    "module": "src/main.tsx",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "bun run --watch src/main.tsx",
+        "build": "bun run scripts/build.ts",
+        "typecheck": "tsc --noEmit",
+        "lint": "oxlint .",
+        "lint:fix": "oxlint --fix .",
+        "lint:ci": "oxlint . --deny-warnings",
+        "fmt": "oxfmt --write .",
+        "fmt:check": "oxfmt --check .",
+        "check": "bun run typecheck && bun run fmt:check && bun run lint:ci"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@types/react": "^19.2.17",
+        "@types/react-reconciler": "^0.33.0",
+        "oxfmt": "0.55.0",
+        "oxlint": "1.70.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "@opentui/core": "0.4.1",
+        "@opentui/keymap": "0.4.1",
+        "@opentui/react": "0.4.1",
+        "react": "^19.2.7"
+    }
+}
