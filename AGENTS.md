@@ -16,6 +16,7 @@ Agent TUI is a product and any development of it must have the highest standards
   - Documentation should be written exactly like it is for production-grade, polished projects.
   - Please do not use tables unless asked for or they are absolutely the right choice.
 - Prefer to ask the user more questions to clarify their needs.
+- Don't put constants or values that have a good chance of changing in comments as that becomes another thing that needs to be changed.
 - NEVER store or update memories.
 - New features should be continually organized in directories and files. We want things to be modular, so if a piece does not work well its easy to replace. Files like `index.tsx` should remain small when possible.
 

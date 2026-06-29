@@ -1,20 +1,39 @@
 import { randomUUID } from "node:crypto"
-import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { MANAGED_ROOT } from "../../constants"
+import { PINNED_VERSIONS } from "../../versions"
 import { platform } from "./platform"
 
-// Pinned version of uv we vendor for end users without a system uv.
-const UV_VERSION = "0.11.16"
+const UV_VERSION = PINNED_VERSIONS.uv
 
 export interface ResolvedUv {
     path: string
-    source: "path" | "cache" | "downloaded"
+    source: "cache" | "downloaded"
     version: string
 }
 
+function uvRoot(): string {
+    return join(MANAGED_ROOT, "uv")
+}
+
+// Version-scoped cache directory for the managed uv binary.
+// Scoping the path by version means a UV_VERSION bump resolves to a fresh directory, which is what makes a version change trigger a re-download.
 function cacheDir(): string {
-    return join(platform.uv.cacheRoot, "agent-tui", "bin")
+    return join(uvRoot(), UV_VERSION)
+}
+
+// Resolves the managed uv binary the TUI uses to spawn agent-server.
+// It is downloaded once into the version-scoped cache and reused on every later run.
+export async function resolveUv(): Promise<ResolvedUv> {
+    const cached = join(cacheDir(), platform.uv.binaryName)
+    if (existsSync(cached)) {
+        return { path: cached, source: "cache", version: UV_VERSION }
+    }
+
+    const downloaded = await downloadUv()
+    return { path: downloaded, source: "downloaded", version: UV_VERSION }
 }
 
 async function downloadUv(): Promise<string> {
@@ -55,6 +74,7 @@ async function downloadUv(): Promise<string> {
             await Bun.write(targetBinary, Bun.file(extractedBinary))
         }
 
+        pruneOldVersions()
         return targetBinary
     } finally {
         try {
@@ -65,21 +85,20 @@ async function downloadUv(): Promise<string> {
     }
 }
 
-// Resolves the uv binary the TUI will use to spawn agent-server.
-// Prefers a system install on PATH,
-// then a previously cached download under `<platform.uv.cacheRoot>/agent-tui/bin/`,
-// and finally downloads a pinned release as a last resort.
-export async function resolveUv(): Promise<ResolvedUv> {
-    const onPath = Bun.which("uv")
-    if (onPath !== null) {
-        return { path: onPath, source: "path", version: "system" }
+// Best-effort removal of previously cached uv versions once the current one is in place
+function pruneOldVersions(): void {
+    let entries: string[]
+    try {
+        entries = readdirSync(uvRoot())
+    } catch {
+        return
     }
-
-    const cached = join(cacheDir(), platform.uv.binaryName)
-    if (existsSync(cached)) {
-        return { path: cached, source: "cache", version: UV_VERSION }
+    for (const entry of entries) {
+        if (entry === UV_VERSION) continue
+        try {
+            rmSync(join(uvRoot(), entry), { recursive: true, force: true })
+        } catch {
+            // A locked old version is harmless; it will be retried on the next download.
+        }
     }
-
-    const downloaded = await downloadUv()
-    return { path: downloaded, source: "downloaded", version: UV_VERSION }
 }

@@ -1,3 +1,9 @@
+import { homedir } from "node:os"
+import { join } from "node:path"
+
+// The single root every runtime artifact lives under.
+export const MANAGED_ROOT = join(homedir(), ".agents", "tui")
+
 export const Colors = {
     // Subtle separator/border lines, e.g. the control tower frame.
     border: "#444444",
