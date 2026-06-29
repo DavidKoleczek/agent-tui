@@ -1,6 +1,6 @@
 import { join } from "node:path"
 import type { LogFile } from "../../session/server-log"
-import type { ProcessSupervisor, ServerPlatform, SupervisionHandle, UvPlatform } from "./types"
+import type { AgentServerPlatform, ProcessSupervisor, ServerPlatform, SupervisionHandle, UvPlatform } from "./types"
 
 function cacheRoot(): string {
     if (process.env.XDG_DATA_HOME !== undefined && process.env.XDG_DATA_HOME !== "") {
@@ -53,6 +53,10 @@ const uv: UvPlatform = {
     },
 }
 
+const agentServer: AgentServerPlatform = {
+    binaryName: "agent-server",
+}
+
 const KILL_GRACE_MS = 3_000
 
 function trySignal(pid: number, signal: NodeJS.Signals, log: LogFile): boolean {
@@ -99,4 +103,4 @@ const supervisor: ProcessSupervisor = {
     },
 }
 
-export const posixPlatform: ServerPlatform = { uv, supervisor }
+export const posixPlatform: ServerPlatform = { uv, agentServer, supervisor }

@@ -1,9 +1,11 @@
 import type { LogFile } from "../session/server-log"
+import { pipeStream } from "./pipe-stream"
 import { platform } from "./platform"
 import { uvSandboxEnv } from "./uv"
 
 export interface SpawnAgentServerOptions {
-    uvPath: string
+    // Absolute path to the installed agent-server entry point (see ensureAgentServer).
+    entryPoint: string
     port: number
     cwd: string
     log: LogFile
@@ -16,48 +18,16 @@ export interface ServerProcess {
     kill(): Promise<void>
 }
 
-const GIT_URL = "https://github.com/DavidKoleczek/agent-server"
-const GIT_REF = "main"
 const KILL_GRACE_MS = 3_000
 
-function buildArgs(uvPath: string, port: number): string[] {
-    return [
-        uvPath,
-        "tool",
-        "run",
-        "--from",
-        `git+${GIT_URL}@${GIT_REF}`,
-        "agent-server",
-        "--port",
-        String(port),
-        "--no-reload",
-    ]
+function buildArgs(entryPoint: string, port: number): string[] {
+    return [entryPoint, "--port", String(port), "--no-reload"]
 }
 
-// Drains a ReadableStream<Uint8Array> into the log, decoding as streaming UTF-8 so multi-byte sequences split across chunks aren't corrupted.
-// The log's internal write queue serializes against the other stdio stream sharing the same writer.
-async function pipeStream(stream: ReadableStream<Uint8Array>, log: LogFile): Promise<void> {
-    const reader = stream.getReader()
-    const decoder = new TextDecoder("utf-8")
-    try {
-        while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            if (value !== undefined && value.byteLength > 0) {
-                log.write(decoder.decode(value, { stream: true }))
-            }
-        }
-        const tail = decoder.decode()
-        if (tail.length > 0) log.write(tail)
-    } finally {
-        reader.releaseLock()
-    }
-}
-
-// Spawns agent-server via `uv tool run`.
+// Spawns agent-server by exec'ing the installed entry point directly (ensureAgentServer handles install).
 export function spawnAgentServer(options: SpawnAgentServerOptions): ServerProcess {
-    const { uvPath, port, cwd, log } = options
-    const args = platform.supervisor.wrap(buildArgs(uvPath, port))
+    const { entryPoint, port, cwd, log } = options
+    const args = platform.supervisor.wrap(buildArgs(entryPoint, port))
 
     const commandLine = args.map((a) => (a.includes(" ") ? JSON.stringify(a) : a)).join(" ")
     log.write(`[agent-tui] starting agent-server at ${new Date().toISOString()} cwd=${cwd} port=${port}\n`)

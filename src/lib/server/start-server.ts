@@ -1,5 +1,13 @@
+import { PINNED_VERSIONS } from "../versions"
 import { connectAgentWebSocket, type AgentWSClient } from "./agent"
-import { pickFreePort, resolveUv, spawnAgentServer, type ServerProcess, waitForHealthz } from "./lifecycle"
+import {
+    ensureAgentServer,
+    pickFreePort,
+    resolveUv,
+    spawnAgentServer,
+    type ServerProcess,
+    waitForHealthz,
+} from "./lifecycle"
 import { createLogFile, createWsLog, type LogFile, type WsLog } from "./session"
 
 export interface ServerHandle {
@@ -72,10 +80,17 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
                     `in ${Date.now() - uvStartedAt}ms\n`,
             )
 
+            const ensureStartedAt = Date.now()
+            const agentServer = await ensureAgentServer({ uvPath: uv.path, log })
+            log.write(
+                `[agent-tui] agent-server ${agentServer.source} (sha=${PINNED_VERSIONS.agentServer}) ` +
+                    `entryPoint=${agentServer.entryPoint} in ${Date.now() - ensureStartedAt}ms\n`,
+            )
+
             const portStartedAt = Date.now()
             const port = await pickFreePort()
             log.write(`[agent-tui] free port ${port} picked in ${Date.now() - portStartedAt}ms\n`)
-            const proc = spawnAgentServer({ uvPath: uv.path, port, cwd, log })
+            const proc = spawnAgentServer({ entryPoint: agentServer.entryPoint, port, cwd, log })
 
             const health = await waitForHealthz({ port })
             if (health.ok) {

@@ -18,13 +18,12 @@ function uvRoot(): string {
     return join(MANAGED_ROOT, "uv")
 }
 
-// Pins uv's runtime dirs under the managed root so nothing the TUI runs through uv lands in the user's global uv
-// state or on their PATH (UV_TOOL_BIN_DIR otherwise defaults to a directory uv expects to be on PATH).
+// Pins uv's shared runtime dirs under the managed root so nothing the TUI runs through uv lands in the user's global uv state.
+// The per-install tool environment and entry-point dirs (UV_TOOL_DIR / UV_TOOL_BIN_DIR) are
+// scoped per pin by the caller so a pin change never overwrites a running instance's venv.
 export function uvSandboxEnv(): Record<string, string> {
     return {
         UV_CACHE_DIR: join(MANAGED_ROOT, "cache"),
-        UV_TOOL_DIR: join(MANAGED_ROOT, "tools"),
-        UV_TOOL_BIN_DIR: join(MANAGED_ROOT, "bin"),
         UV_PYTHON_INSTALL_DIR: join(MANAGED_ROOT, "python"),
     }
 }

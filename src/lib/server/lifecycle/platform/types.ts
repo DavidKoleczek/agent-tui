@@ -13,6 +13,12 @@ export interface UvPlatform {
     extractArchive(archivePath: string, destDir: string): Promise<void>
 }
 
+// Abstraction over the OS-specific name of the installed agent-server entry point.
+export interface AgentServerPlatform {
+    // The basename uv writes into UV_TOOL_BIN_DIR for the agent-server console script (e.g. "agent-server.exe", "agent-server").
+    binaryName: string
+}
+
 // Abstraction over OS-specific process supervision.
 // Mirrors the lifecycle of a  single spawned child:
 // pre-spawn arg rewrite, spawn-time options, post-spawn registration, and tree-kill on shutdown.
@@ -34,5 +40,6 @@ export interface SupervisionHandle {
 
 export interface ServerPlatform {
     uv: UvPlatform
+    agentServer: AgentServerPlatform
     supervisor: ProcessSupervisor
 }

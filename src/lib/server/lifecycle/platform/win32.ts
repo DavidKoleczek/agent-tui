@@ -1,7 +1,7 @@
 import { join } from "node:path"
 import type { LogFile } from "../../session/server-log"
 import { createKillOnCloseJob, type JobHandle } from "./win32-job-object"
-import type { ProcessSupervisor, ServerPlatform, SupervisionHandle, UvPlatform } from "./types"
+import type { AgentServerPlatform, ProcessSupervisor, ServerPlatform, SupervisionHandle, UvPlatform } from "./types"
 
 function cacheRoot(): string {
     const base = process.env.LOCALAPPDATA ?? join(process.env.USERPROFILE ?? ".", "AppData", "Local")
@@ -42,6 +42,10 @@ const uv: UvPlatform = {
             throw new Error(`Expand-Archive failed (exit ${code}): ${err.trim()}`)
         }
     },
+}
+
+const agentServer: AgentServerPlatform = {
+    binaryName: "agent-server.exe",
 }
 
 const KILL_GRACE_MS = 3_000
@@ -110,4 +114,4 @@ const supervisor: ProcessSupervisor = {
     },
 }
 
-export const win32Platform: ServerPlatform = { uv, supervisor }
+export const win32Platform: ServerPlatform = { uv, agentServer, supervisor }
