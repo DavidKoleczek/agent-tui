@@ -1,5 +1,6 @@
 import { join } from "node:path"
 import type { LogFile } from "../../session/server-log"
+import { settleWithin } from "../wait"
 import type { AgentServerPlatform, ProcessSupervisor, ServerPlatform, SupervisionHandle, UvPlatform } from "./types"
 
 function cacheRoot(): string {
@@ -86,7 +87,7 @@ const supervisor: ProcessSupervisor = {
         // That lets killTree signal -pid to reach every descendant.
         return { detached: true }
     },
-    register(pid: number, log: LogFile): SupervisionHandle {
+    register(pid: number, exited: Promise<unknown>, log: LogFile): SupervisionHandle {
         let killing: Promise<void> | null = null
         return {
             killTree(): Promise<void> {
@@ -94,8 +95,9 @@ const supervisor: ProcessSupervisor = {
                 killing = (async () => {
                     const stillAlive = trySignal(pid, "SIGTERM", log)
                     if (!stillAlive) return
-                    await new Promise<void>((resolve) => setTimeout(resolve, KILL_GRACE_MS))
-                    trySignal(pid, "SIGKILL", log)
+                    // Give the group the grace window to honor SIGTERM, but escalate to SIGKILL only if it is still alive when the window elapses.
+                    const exitedInTime = await settleWithin(exited, KILL_GRACE_MS)
+                    if (!exitedInTime) trySignal(pid, "SIGKILL", log)
                 })()
                 return killing
             },

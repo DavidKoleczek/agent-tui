@@ -29,8 +29,10 @@ export interface ProcessSupervisor {
     // Extra Bun.spawn options merged into the spawn call (e.g. `{ detached: true }`
     // on POSIX so the child becomes its own process group leader).
     spawnOptions(): { detached?: boolean }
-    // Called once after Bun.spawn returns. Returns a handle for later teardown.
-    register(pid: number, log: LogFile): SupervisionHandle
+    // Called once after Bun.spawn returns. `exited` resolves when the spawned process is gone; POSIX uses it to
+    // escalate from SIGTERM to SIGKILL only when the child outlives the grace window instead of always waiting it out.
+    // Returns a handle for later teardown.
+    register(pid: number, exited: Promise<unknown>, log: LogFile): SupervisionHandle
 }
 
 export interface SupervisionHandle {

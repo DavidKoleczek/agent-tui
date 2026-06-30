@@ -2,6 +2,7 @@ import type { LogFile } from "../session/server-log"
 import { pipeStream } from "./pipe-stream"
 import { platform } from "./platform"
 import { uvSandboxEnv } from "./uv"
+import { settleWithin } from "./wait"
 
 export interface SpawnAgentServerOptions {
     // Absolute path to the installed agent-server entry point (see ensureAgentServer).
@@ -42,7 +43,7 @@ export function spawnAgentServer(options: SpawnAgentServerOptions): ServerProces
         ...platform.supervisor.spawnOptions(),
     })
 
-    const supervision = platform.supervisor.register(proc.pid, log)
+    const supervision = platform.supervisor.register(proc.pid, proc.exited, log)
 
     // Run both pumps to completion; failures are swallowed because the child stream closing mid-read is normal during shutdown.
     pipeStream(proc.stdout as ReadableStream<Uint8Array>, log).catch((err) => {
@@ -63,10 +64,7 @@ export function spawnAgentServer(options: SpawnAgentServerOptions): ServerProces
         killing = (async () => {
             log.write(`[agent-tui] stopping agent-server pid=${proc.pid}\n`)
             await supervision.killTree()
-            await Promise.race([
-                proc.exited.then(() => undefined),
-                new Promise<void>((resolve) => setTimeout(resolve, KILL_GRACE_MS)),
-            ])
+            await settleWithin(proc.exited, KILL_GRACE_MS)
         })()
         return killing
     }

@@ -1,4 +1,5 @@
 import type { ClientEvent, StreamingEvent, UserMessageEvent, CancelEvent, QuitEvent } from "../../../schemas/activities"
+import { settleWithin } from "../lifecycle/wait"
 import type { LogFile } from "../session/server-log"
 import type { WsLog } from "../session/ws-log"
 
@@ -123,16 +124,14 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
             closing = (async () => {
                 if (ws.readyState === WebSocket.CLOSED) return
                 if (ws.readyState !== WebSocket.CLOSING) ws.close()
-                await Promise.race([
-                    new Promise<void>((resolve) => {
-                        const prev = ws.onclose
-                        ws.onclose = (ev): void => {
-                            prev?.call(ws, ev)
-                            resolve()
-                        }
-                    }),
-                    new Promise<void>((resolve) => setTimeout(resolve, CLOSE_GRACE_MS)),
-                ])
+                const closed = new Promise<void>((resolve) => {
+                    const prev = ws.onclose
+                    ws.onclose = (ev): void => {
+                        prev?.call(ws, ev)
+                        resolve()
+                    }
+                })
+                await settleWithin(closed, CLOSE_GRACE_MS)
             })()
             return closing
         },

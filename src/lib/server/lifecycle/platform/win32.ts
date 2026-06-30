@@ -1,5 +1,6 @@
 import { join } from "node:path"
 import type { LogFile } from "../../session/server-log"
+import { settleWithin } from "../wait"
 import { createKillOnCloseJob, type JobHandle } from "./win32-job-object"
 import type { AgentServerPlatform, ProcessSupervisor, ServerPlatform, SupervisionHandle, UvPlatform } from "./types"
 
@@ -66,7 +67,7 @@ const supervisor: ProcessSupervisor = {
     spawnOptions() {
         return {}
     },
-    register(pid: number, log: LogFile): SupervisionHandle {
+    register(pid: number, _exited: Promise<unknown>, log: LogFile): SupervisionHandle {
         let job: JobHandle | null = null
         try {
             job = createKillOnCloseJob()
@@ -99,10 +100,10 @@ const supervisor: ProcessSupervisor = {
                         }
                     } else {
                         try {
-                            await Promise.race([
+                            await settleWithin(
                                 taskkillTree(pid).then(() => undefined),
-                                new Promise<void>((resolve) => setTimeout(resolve, KILL_GRACE_MS)),
-                            ])
+                                KILL_GRACE_MS,
+                            )
                         } catch (err) {
                             log.write(`[agent-tui] taskkill failed: ${(err as Error).message}\n`)
                         }
