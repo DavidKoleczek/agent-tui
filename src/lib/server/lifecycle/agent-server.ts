@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { MANAGED_ROOT } from "../../constants"
 import { PINNED_VERSIONS } from "../../versions"
@@ -40,6 +40,25 @@ function binDir(): string {
 
 function entryPointPath(): string {
     return join(binDir(), platform.agentServer.binaryName)
+}
+
+// Removes tool/bin directories for every scope except the current pin, best-effort.
+function pruneSupersededScopes(): void {
+    const current = scope()
+    for (const parent of [join(MANAGED_ROOT, "tools"), join(MANAGED_ROOT, "bin")]) {
+        let entries: string[]
+        try {
+            entries = readdirSync(parent)
+        } catch {
+            continue
+        }
+        for (const entry of entries) {
+            if (entry === current) continue
+            try {
+                rmSync(join(parent, entry), { recursive: true, force: true })
+            } catch {}
+        }
+    }
 }
 
 async function installAgentServer(uvPath: string, log: LogFile): Promise<void> {
@@ -84,16 +103,15 @@ async function installAgentServer(uvPath: string, log: LogFile): Promise<void> {
 }
 
 // Ensures the pinned agent-server is installed for the current scope and returns the entry point to exec.
-// A warm launch (the scope's entry point already exists) skips uv entirely; the install only runs on the first launch of a pin.
-// Superseded scopes are left in place and pruned best-effort by the updater (see build_notes [UPD]).
 export async function ensureAgentServer(options: EnsureAgentServerOptions): Promise<ResolvedAgentServer> {
     const { uvPath, log } = options
     const entryPoint = entryPointPath()
 
-    if (existsSync(entryPoint)) {
-        return { entryPoint, source: "cached" }
+    const source: ResolvedAgentServer["source"] = existsSync(entryPoint) ? "cached" : "installed"
+    if (source === "installed") {
+        await installAgentServer(uvPath, log)
     }
 
-    await installAgentServer(uvPath, log)
-    return { entryPoint, source: "installed" }
+    pruneSupersededScopes()
+    return { entryPoint, source }
 }

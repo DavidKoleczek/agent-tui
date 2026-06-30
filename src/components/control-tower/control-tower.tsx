@@ -24,7 +24,10 @@ const TABS: readonly TowerTab[] = [
 ]
 
 const SETTINGS_INDEX = 1
-const SETTINGS_ITEMS: readonly SettingsMenuItem[] = [{ id: "resume", label: "Resume" }]
+const SETTINGS_ITEMS: readonly SettingsMenuItem[] = [
+    { id: "resume", label: "Resume" },
+    { id: "update", label: "Check for updates" },
+]
 
 type Focus = { area: "tabs"; tabIndex: number } | { area: "menu"; itemIndex: number }
 
@@ -34,7 +37,7 @@ function itemsForTab(tabIndex: number): readonly SettingsMenuItem[] {
 
 export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume }: ControlTowerProps) {
     const [activeTab, setActiveTab] = useState(0)
-    const [mode, setMode] = useState<"browse" | "resume">("browse")
+    const [mode, setMode] = useState<"browse" | "resume" | "update">("browse")
     const [focus, setFocus] = useState<Focus>({ area: "tabs", tabIndex: 0 })
 
     // Latest values for the key handlers, so the navigation layer registers once per (region, mode) rather than per keypress.
@@ -61,6 +64,7 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
     const activateMenuItem = (tabIndex: number, itemIndex: number): void => {
         const item = itemsForTab(tabIndex)[itemIndex]
         if (item?.id === "resume") setMode("resume")
+        if (item?.id === "update") setMode("update")
     }
 
     const handleResume = (sessionPath: string): void => {
@@ -71,6 +75,11 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
     const cancelResume = (): void => {
         setMode("browse")
         setFocus({ area: "menu", itemIndex: 0 })
+    }
+
+    const cancelUpdate = (): void => {
+        setMode("browse")
+        setFocus({ area: "menu", itemIndex: SETTINGS_ITEMS.findIndex((item) => item.id === "update") })
     }
 
     const browseActive = region === "tower" && mode === "browse"
@@ -184,10 +193,13 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
                         activateMenuItem(SETTINGS_INDEX, index)
                     }}
                     cwd={cwd}
-                    active={region === "tower" && mode === "resume"}
+                    resumeActive={region === "tower" && mode === "resume"}
                     onResume={handleResume}
                     onCancelResume={cancelResume}
                     onExitResumeTop={cancelResume}
+                    updateActive={region === "tower" && mode === "update"}
+                    onCancelUpdate={cancelUpdate}
+                    onExitUpdateTop={cancelUpdate}
                 />
             ) : (
                 <ControlPanel />

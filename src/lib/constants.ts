@@ -4,9 +4,15 @@ import { join } from "node:path"
 // The single root every runtime artifact lives under.
 export const MANAGED_ROOT = join(homedir(), ".agents", "tui")
 
+// Version used when no real version was injected at build time (i.e. `bun dev`).
+export const DEV_VERSION = "0.0.0-dev"
+
 // APP_VERSION is replaced at build time by `bun build --define`, but is absent in dev
 declare const APP_VERSION: string | undefined
-export const appVersion: string = typeof APP_VERSION === "string" && APP_VERSION.length > 0 ? APP_VERSION : "0.0.0-dev"
+export const appVersion: string = typeof APP_VERSION === "string" && APP_VERSION.length > 0 ? APP_VERSION : DEV_VERSION
+
+// Releases URL the updater fetches
+export const MANIFEST_URL = "https://github.com/DavidKoleczek/agent-tui/releases/latest/download/latest.json"
 
 export const Colors = {
     // Subtle separator/border lines, e.g. the control tower frame.
