@@ -7,8 +7,9 @@ import { runPreBootCli } from "./cli"
 import { cleanupStaleBackup, installVSCodeInputShims } from "./lib/tui"
 import { startServer } from "./lib/server"
 
-if (runPreBootCli(process.argv)) {
-    process.exit(0)
+const preBootCode = await runPreBootCli(process.argv)
+if (preBootCode !== null) {
+    process.exit(preBootCode)
 }
 
 cleanupStaleBackup(process.execPath)

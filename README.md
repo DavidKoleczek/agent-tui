@@ -66,6 +66,14 @@ Add this entry to the root-level `keybindings` array:
 Save and restart Windows Terminal or open a new tab.
 
 
+## Uninstall
+
+Quit any running instances, then run:
+
+```bash
+agent uninstall --yes
+```
+
 ## Development
 
 ### Prerequisites
