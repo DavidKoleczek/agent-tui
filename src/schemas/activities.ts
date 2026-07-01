@@ -97,8 +97,13 @@ export interface ActivityDelta {
 
 export type StatusId =
     | "agent_starting"
+    | "agent_ready"
+    | "agent_cancelling"
+    | "agent_cancelled"
+    | "agent_stopping"
+    | "agent_stopped"
     | "agent_running"
-    | "agent_run_ended"
+    | "agent_turn_ended"
     | "waiting_for_llm_response"
     | "processing_llm_response"
     | "executing_tool"

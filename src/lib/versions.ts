@@ -1,5 +1,5 @@
 export const PINNED_VERSIONS = {
     uv: "0.11.24",
-    agentServer: "46d15f83517c6b594149f7d2ff93e240695fa5c0",
+    agentServer: "1023c67e880e0824070ff9d4b12400852fad2edb",
     python: "3.13",
 } as const

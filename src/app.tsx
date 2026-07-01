@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { ActivityLog, ControlTower, StatusLine, TextInput, type TextInputHandle } from "./components"
+import { ActivityLog, ControlTower, HelpHint, StatusLine, TextInput, type TextInputHandle } from "./components"
 import { useCtrlCExit, useTowerKeybinds } from "./hooks"
 import { createActivityStore } from "./lib/activity-store"
 import { fetchSessionActivities, type AgentWSClient, type ServerHandle } from "./lib/server"
@@ -23,17 +23,21 @@ export function App({ server, onBeforeExit }: AppProps) {
     // Tears down the subscriptions on the currently wired client; replaced whenever we wire a new one.
     const teardownRef = useRef<() => void>(() => {})
     const [ready, setReady] = useState(false)
-    // Latest server lifecycle status. Null means there is nothing to show (idle, or after agent_run_ended).
+    // Latest server lifecycle status. Null means there is nothing to show (idle, or after agent_turn_ended).
     const [status, setStatus] = useState<StatusId | null>(null)
     // The control tower side panel is shown by default.
     const [towerOpen, setTowerOpen] = useState(true)
     // Which region owns keyboard focus. The chat textarea is focused only in "chat".
     const [region, setRegion] = useState<"chat" | "tower">("chat")
 
-    // Hook that registers a global keyboard listener and implements the correct behavior (described in the hook).
-    useCtrlCExit({
+    // Hook that registers a global keyboard listener. It returns the currently armed Ctrl-C step.
+    const ctrlCHint = useCtrlCExit({
         isEmpty: () => inputRef.current?.isEmpty() ?? true,
         clear: () => inputRef.current?.clear(),
+        isWorking: () => status !== null,
+        cancel: () => {
+            agentWSClientRef.current?.cancel()
+        },
         onBeforeExit,
     })
 
@@ -67,9 +71,9 @@ export function App({ server, onBeforeExit }: AppProps) {
                     if (!client.isReady()) setStatus(null)
                 }),
                 client.subscribeActivities((event) => {
-                    // Track the latest phase for the status line; agent_run_ended is a sentinel that clears the status.
+                    // Track the latest phase for the status line; agent_running is a sentinel that clears the status.
                     if (event.type === "status") {
-                        setStatus(event.status_id === "agent_run_ended" ? null : event.status_id)
+                        setStatus(event.status_id === "agent_running" ? null : event.status_id)
                     }
                     store.applyStreamingEvent(event)
                 }),
@@ -137,6 +141,8 @@ export function App({ server, onBeforeExit }: AppProps) {
                 <box flexDirection="column" flexGrow={1} onMouseDown={() => setRegion("chat")}>
                     <ActivityLog activities={activities} />
                     <TextInput ref={inputRef} onSubmit={handleSubmit} ready={ready} focused={region === "chat"} />
+                    <StatusLine ready={ready} status={status} />
+                    <HelpHint hint={ctrlCHint} />
                 </box>
                 {towerOpen ? (
                     <ControlTower
@@ -148,7 +154,6 @@ export function App({ server, onBeforeExit }: AppProps) {
                     />
                 ) : null}
             </box>
-            <StatusLine ready={ready} status={status} />
         </box>
     )
 }
