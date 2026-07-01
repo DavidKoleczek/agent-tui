@@ -29,6 +29,8 @@ export function App({ server, onBeforeExit }: AppProps) {
     const [towerOpen, setTowerOpen] = useState(true)
     // Which region owns keyboard focus. The chat textarea is focused only in "chat".
     const [region, setRegion] = useState<"chat" | "tower">("chat")
+    // Whether the activity log's expanded task overlay is open. The chat input releases focus while it is.
+    const [overlayOpen, setOverlayOpen] = useState(false)
 
     // Hook that registers a global keyboard listener. It returns the currently armed Ctrl-C step.
     const ctrlCHint = useCtrlCExit({
@@ -139,8 +141,13 @@ export function App({ server, onBeforeExit }: AppProps) {
         <box flexDirection="column" flexGrow={1}>
             <box flexDirection="row" flexGrow={1}>
                 <box flexDirection="column" flexGrow={1} onMouseDown={() => setRegion("chat")}>
-                    <ActivityLog activities={activities} />
-                    <TextInput ref={inputRef} onSubmit={handleSubmit} ready={ready} focused={region === "chat"} />
+                    <ActivityLog activities={activities} onExpandedChange={setOverlayOpen} />
+                    <TextInput
+                        ref={inputRef}
+                        onSubmit={handleSubmit}
+                        ready={ready}
+                        focused={region === "chat" && !overlayOpen}
+                    />
                     <StatusLine ready={ready} status={status} />
                     <HelpHint hint={ctrlCHint} />
                 </box>

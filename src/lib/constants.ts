@@ -29,8 +29,14 @@ export const Colors = {
     activeText: "#FFFFFF",
     // Background for error activity rows.
     errorBackground: "#ff4d4d",
-    // Background for task (tool call) activity rows.
-    taskBackground: "#1a1a1a",
+    // Attention foreground for status dots: a pending or denied tool permission.
+    warning: "#f2c94c",
+    // Error foreground for status dots. Shares the error red, but is a foreground marker rather than a row background.
+    danger: "#ff4d4d",
+    // Subtle background shown only while a task is hovered, signaling it is interactive.
+    rowHover: "#1a1a1a",
+    // Opaque background for the expanded task overlay so the activity log behind it does not bleed through.
+    overlayBackground: "#0d0d0d",
 } as const
 
 // Lines advanced per mouse-wheel tick in the activity log.

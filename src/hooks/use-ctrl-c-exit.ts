@@ -1,6 +1,7 @@
 import { type KeyEvent } from "@opentui/core"
 import { useKeyboard, useRenderer } from "@opentui/react"
 import { useEffect, useRef, useState } from "react"
+import { writeSystemClipboard } from "../lib/clipboard"
 
 export interface UseCtrlCExitOptions {
     isEmpty: () => boolean
@@ -18,7 +19,8 @@ export type CtrlCHint = "none" | "cancel" | "quit"
 const DEFAULT_WINDOW_MS = 1000
 
 // State-aware Ctrl-C.
-// A press on a non-empty input clears it and resets the sequence.
+// A press while text is selected copies the selection to the clipboard and clears it, matching a terminal.
+// Otherwise, a press on a non-empty input clears it and resets the sequence.
 // On an empty input the behavior depends on whether the agent is working:
 // - idle arms once then quits
 // - working arms once, cancels onthe second press, then quits on the third.
@@ -77,6 +79,21 @@ export function useCtrlCExit({
             // Deliberately skip setHint here: the renderer is about to be destroyed.
             onBeforeExit?.()
             renderer.destroy()
+        }
+
+        // When text is selected, Ctrl-C copies it to the clipboard and clears the highlight, matching a terminal.
+        // The copy consumes the press so it neither clears the input nor advances the quit sequence.
+        const selectedText = renderer.getSelection()?.getSelectedText() ?? ""
+        if (selectedText.length > 0) {
+            // Prefer OSC 52, but fall back to the OS clipboard tool for terminals that do not advertise OSC 52 support, such as the VS Code integrated terminal.
+            if (!renderer.copyToClipboardOSC52(selectedText)) {
+                writeSystemClipboard(selectedText)
+            }
+            renderer.clearSelection()
+            clearTimer()
+            countRef.current = 0
+            setHint("none")
+            return
         }
 
         // A press with text present always clears the input and resets the sequence, in both modes.
