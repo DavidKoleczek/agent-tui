@@ -1,6 +1,7 @@
+import { type BoxRenderable } from "@opentui/core"
 import { useBindings, type UseBindingsLayer } from "@opentui/keymap/react"
 import { useEffect, useRef, useState } from "react"
-import { formatRelativeTime, listSessionFiles, readSessionPreviews } from "../../../lib/tui"
+import { formatRelativeTime, listSessionFiles, readNonEmptySessions } from "../../../lib/tui"
 import type { SessionFile, SessionPreview } from "../../../lib/tui"
 import { Colors } from "../../../lib/constants"
 
@@ -18,19 +19,18 @@ export interface SessionPickerProps {
     onExitTop?: () => void
     // Maximum characters of the message preview to display. Lower values suit the narrow tower panel.
     maxPreviewChars?: number
-    // Number of sessions shown per page.
+    // Number of sessions shown per page. When omitted, the page size fills the available height automatically.
     pageSize?: number
 }
 
-const DEFAULT_PAGE_SIZE = 5
+// Page size used until the list height has been measured for the first time.
+const FALLBACK_PAGE_SIZE = 5
 const DEFAULT_MAX_PREVIEW_CHARS = 28
 
 interface SessionRowProps {
     selected: boolean
     relativeTime: string
-    // The session's last user message, or null when it has none or could not be read.
     preview: string | null
-    // True while the preview for this page is still being read from disk.
     loading: boolean
     onActivate: () => void
 }
@@ -55,6 +55,33 @@ function SessionRow({ selected, relativeTime, preview, loading, onActivate }: Se
     )
 }
 
+interface PageButtonProps {
+    label: string
+    onPress: () => void
+}
+
+function PageButton({ label, onPress }: PageButtonProps) {
+    const [hovered, setHovered] = useState(false)
+
+    return (
+        <box
+            backgroundColor={hovered ? Colors.rowHover : undefined}
+            paddingLeft={1}
+            paddingRight={1}
+            flexShrink={0}
+            onMouseOver={() => setHovered(true)}
+            onMouseOut={() => setHovered(false)}
+            onMouseDown={(event) => {
+                // Keep the click from bubbling to the tower's region-focus handler behind the picker.
+                event.stopPropagation()
+                onPress()
+            }}
+        >
+            <text fg={hovered ? Colors.activeText : Colors.mutedText}>{label}</text>
+        </box>
+    )
+}
+
 export function SessionPicker({
     cwd,
     active,
@@ -62,34 +89,73 @@ export function SessionPicker({
     onCancel,
     onExitTop,
     maxPreviewChars = DEFAULT_MAX_PREVIEW_CHARS,
-    pageSize = DEFAULT_PAGE_SIZE,
+    pageSize,
 }: SessionPickerProps) {
     // Discovery is cheap (stat only) and stable for the lifetime of the picker, so it runs once.
     const [files] = useState<SessionFile[]>(() => listSessionFiles(cwd))
     const [page, setPage] = useState(0)
     const [selected, setSelected] = useState(0)
-    // Null while the current page's previews are loading.
-    const [previews, setPreviews] = useState<SessionPreview[] | null>(null)
+    // Non-empty session previews resolved so far, in discovery order.
+    // Filled forward on demand as pages are viewed so we never open a database for a page the user has not reached.
+    const [resolved, setResolved] = useState<SessionPreview[]>([])
+    // Index of the next file to inspect; once it reaches files.length every session has been resolved.
+    const [cursor, setCursor] = useState(0)
+    // Rows that fit in the measured list height, or null until the first layout pass measures it.
+    const [capacity, setCapacity] = useState<number | null>(null)
+    const listRef = useRef<BoxRenderable | null>(null)
 
-    const pageCount = Math.max(1, Math.ceil(files.length / pageSize))
-    const pageFiles = files.slice(page * pageSize, page * pageSize + pageSize)
+    // Re-measure how many rows fit whenever the list box resizes.
+    // Guarded so it only updates state on a real change,
+    // which prevents a setState -> layout -> onSizeChange feedback loop.
+    const measure = () => {
+        const node = listRef.current
+        if (!node) return
+        const next = Math.max(1, Math.floor(node.height / 2))
+        setCapacity((prev) => (prev === next ? prev : next))
+    }
 
+    // Explicit prop wins; otherwise fill the measured height; otherwise the fallback until the first measurement lands.
+    const effectivePageSize = pageSize ?? capacity ?? FALLBACK_PAGE_SIZE
+
+    const pageStart = page * effectivePageSize
+    const exhausted = cursor >= files.length
+    const pageRows = resolved.slice(pageStart, pageStart + effectivePageSize)
+    // A page is ready once we have enough resolved rows to fill it, or there are no more files to read.
+    const pageReady = resolved.length >= pageStart + effectivePageSize || exhausted
+    const canGoNext = resolved.length > pageStart + effectivePageSize || !exhausted
+
+    // Fill the resolved list forward just enough to show the current page.
+    // Settles after one read: the fill stops only when the page is satisfied or the files are exhausted, so re-running is a no-op.
     useEffect(() => {
+        if (pageReady) return
         let cancelled = false
-        const slice = files.slice(page * pageSize, page * pageSize + pageSize)
-        setPreviews(null)
-        setSelected(0)
-        void readSessionPreviews(slice, maxPreviewChars).then((loaded) => {
-            if (!cancelled) setPreviews(loaded)
+        const needed = pageStart + effectivePageSize - resolved.length
+        void readNonEmptySessions(files, cursor, needed, maxPreviewChars).then((result) => {
+            if (cancelled) return
+            setResolved((prev) => [...prev, ...result.rows])
+            setCursor(result.nextIndex)
         })
         return () => {
             cancelled = true
         }
-    }, [page, files, pageSize, maxPreviewChars])
+    }, [pageReady, pageStart, effectivePageSize, resolved.length, cursor, files, maxPreviewChars])
+
+    // Reset the selection to the top whenever the page changes, or when a resize changes how many rows fit.
+    useEffect(() => {
+        setSelected(0)
+    }, [page, effectivePageSize])
+
+    // If the user paged past the end while more files were still being inspected,
+    // snap back to the last page that actually has rows once discovery is exhausted.
+    useEffect(() => {
+        if (!exhausted) return
+        const lastPage = Math.max(0, Math.ceil(resolved.length / effectivePageSize) - 1)
+        setPage((value) => Math.min(value, lastPage))
+    }, [exhausted, resolved.length, effectivePageSize])
 
     // Refs hold the latest values the key handlers need, so the bindings layer can be registered once per active state.
-    const navRef = useRef({ pageFiles, pageCount, selected })
-    navRef.current = { pageFiles, pageCount, selected }
+    const navRef = useRef({ pageRows, canGoNext, selected })
+    navRef.current = { pageRows, canGoNext, selected }
     const handlersRef = useRef({ onSelect, onCancel, onExitTop })
     handlersRef.current = { onSelect, onCancel, onExitTop }
 
@@ -112,7 +178,7 @@ export function SessionPicker({
                           {
                               key: "down",
                               cmd() {
-                                  const max = navRef.current.pageFiles.length - 1
+                                  const max = navRef.current.pageRows.length - 1
                                   setSelected((value) => Math.max(0, Math.min(max, value + 1)))
                               },
                           },
@@ -125,15 +191,14 @@ export function SessionPicker({
                           {
                               key: "right",
                               cmd() {
-                                  const max = navRef.current.pageCount - 1
-                                  setPage((value) => Math.min(max, value + 1))
+                                  if (navRef.current.canGoNext) setPage((value) => value + 1)
                               },
                           },
                           {
                               key: "return",
                               cmd() {
-                                  const file = navRef.current.pageFiles[navRef.current.selected]
-                                  if (file !== undefined) handlersRef.current.onSelect(file.path)
+                                  const row = navRef.current.pageRows[navRef.current.selected]
+                                  if (row !== undefined) handlersRef.current.onSelect(row.path)
                               },
                           },
                           {
@@ -150,25 +215,40 @@ export function SessionPicker({
 
     return (
         <box flexDirection="column" flexGrow={1}>
-            {files.length === 0 ? (
-                <text fg={Colors.mutedText}>No sessions found</text>
-            ) : (
-                <box flexDirection="column" flexGrow={1}>
-                    {pageFiles.map((file, index) => (
+            <box
+                ref={(node: BoxRenderable | null) => {
+                    listRef.current = node
+                    if (node) measure()
+                }}
+                onSizeChange={measure}
+                flexDirection="column"
+                flexGrow={1}
+                overflow="hidden"
+            >
+                {exhausted && resolved.length === 0 ? (
+                    <text fg={Colors.mutedText}>No sessions found</text>
+                ) : !pageReady ? (
+                    <text fg={Colors.mutedText}>Loading...</text>
+                ) : (
+                    pageRows.map((row, index) => (
                         <SessionRow
-                            key={file.path}
+                            key={row.path}
                             selected={index === selected}
-                            relativeTime={formatRelativeTime(file.modifiedMs)}
-                            preview={previews === null ? null : (previews[index]?.lastUserMessage ?? null)}
-                            loading={previews === null}
-                            onActivate={() => onSelect(file.path)}
+                            relativeTime={formatRelativeTime(row.modifiedMs)}
+                            preview={row.lastUserMessage}
+                            loading={false}
+                            onActivate={() => onSelect(row.path)}
                         />
-                    ))}
-                </box>
-            )}
+                    ))
+                )}
+            </box>
             <box height={1} flexShrink={0} />
-            <box flexDirection="row" justifyContent="flex-end" flexShrink={0}>
-                <text fg={Colors.mutedText}>{`Page ${page + 1}/${pageCount}`}</text>
+            <box flexDirection="row" alignItems="center" justifyContent="flex-end" flexShrink={0}>
+                {page > 0 ? (
+                    <PageButton label="< Prev" onPress={() => setPage((value) => Math.max(0, value - 1))} />
+                ) : null}
+                <text fg={Colors.mutedText}>{` Page ${page + 1} `}</text>
+                {canGoNext ? <PageButton label="Next >" onPress={() => setPage((value) => value + 1)} /> : null}
             </box>
         </box>
     )

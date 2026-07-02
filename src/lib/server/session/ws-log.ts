@@ -1,7 +1,4 @@
-import { randomUUID } from "node:crypto"
-import { createWriteStream, mkdirSync, type WriteStream } from "node:fs"
-import { join } from "node:path"
-import { platform } from "../lifecycle/platform"
+import { logFileName, openLogStream } from "./log-location"
 
 export interface WsLog {
     path: string
@@ -13,15 +10,7 @@ export interface WsLog {
 
 // Per-session websocket transcript log.
 export function createWsLog(cwd: string): WsLog {
-    const fileName = `agent-ws-${formatTimestamp(new Date())}-${randomUUID().slice(0, 8)}.jsonl`
-    const primary = join(cwd, ".agents", "logs")
-    const fallback = join(platform.uv.cacheRoot, "agent-tui", "logs")
-
-    const opened = tryOpen(primary, fileName) ?? tryOpen(fallback, fileName)
-    if (opened === null) {
-        throw new Error(`Failed to open agent-ws log file. Tried ${primary} and ${fallback}.`)
-    }
-
+    const opened = openLogStream(cwd, logFileName("agent-ws", "jsonl"))
     const stream = opened.stream
     let chain: Promise<void> = Promise.resolve()
 
@@ -64,24 +53,5 @@ export function createWsLog(cwd: string): WsLog {
             await chain
             await new Promise<void>((resolve) => stream.end(() => resolve()))
         },
-    }
-}
-
-function formatTimestamp(d: Date): string {
-    const pad = (n: number): string => String(n).padStart(2, "0")
-    return (
-        `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-` +
-        `${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
-    )
-}
-
-function tryOpen(dir: string, fileName: string): { path: string; stream: WriteStream } | null {
-    try {
-        mkdirSync(dir, { recursive: true })
-        const path = join(dir, fileName)
-        const stream = createWriteStream(path, { flags: "a" })
-        return { path, stream }
-    } catch {
-        return null
     }
 }

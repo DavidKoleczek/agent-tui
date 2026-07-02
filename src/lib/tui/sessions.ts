@@ -110,6 +110,47 @@ export function readSessionPreviews(files: readonly SessionFile[], maxChars?: nu
     return Promise.all(files.map((file) => readSessionPreview(file, maxChars)))
 }
 
+// A slice of resolved sessions plus the cursor to resume discovery from.
+export interface SessionPage {
+    rows: SessionPreview[]
+    // Index in the source `files` array to resume from next time; equals `files.length` once exhausted.
+    nextIndex: number
+}
+
+// Sessions read per concurrent chunk while filling a page.
+const FILL_CHUNK_SIZE = 5
+
+// Reads previews forward from `fromIndex`, skipping sessions with no readable human message,
+// until it has collected `count` non-empty rows or reached the end of `files`.
+// Returns the collected rows and the cursor to resume from,
+// so a picker can fill further pages on demand without opening databases it has not reached.
+// Reads in concurrent chunks and stops as soon as `count` is met.
+export async function readNonEmptySessions(
+    files: readonly SessionFile[],
+    fromIndex: number,
+    count: number,
+    maxChars?: number,
+): Promise<SessionPage> {
+    let cursor = Math.max(0, fromIndex)
+    if (count <= 0 || cursor >= files.length) {
+        return { rows: [], nextIndex: Math.min(cursor, files.length) }
+    }
+
+    const rows: SessionPreview[] = []
+    while (rows.length < count && cursor < files.length) {
+        const chunkSize = Math.max(count - rows.length, FILL_CHUNK_SIZE)
+        const chunk = files.slice(cursor, cursor + chunkSize)
+        cursor += chunk.length
+
+        const previews = await readSessionPreviews(chunk, maxChars)
+        for (const preview of previews) {
+            if (preview.lastUserMessage !== null) rows.push(preview)
+        }
+    }
+
+    return { rows, nextIndex: cursor }
+}
+
 function extractContent(chatMessageJson: string): string | null {
     try {
         const parsed: unknown = JSON.parse(chatMessageJson)

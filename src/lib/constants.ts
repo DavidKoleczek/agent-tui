@@ -1,8 +1,11 @@
 import { homedir } from "node:os"
 import { join } from "node:path"
 
-// The single root every runtime artifact lives under.
-export const MANAGED_ROOT = join(homedir(), ".agents", "tui")
+// Root of the `.agents` directory where the tui and other agents keep their data, configs, and logs.
+export const DATA_ROOT = join(homedir(), ".agents")
+
+// The subtree the tui installs and removes on uninstall.
+export const MANAGED_ROOT = join(DATA_ROOT, "tui")
 
 // Version used when no real version was injected at build time (i.e. `bun dev`).
 export const DEV_VERSION = "0.0.0-dev"
