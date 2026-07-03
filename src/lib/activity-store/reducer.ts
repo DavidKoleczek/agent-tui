@@ -26,7 +26,8 @@ export function applyStreamingEvent(
 ): ReadonlyMap<string, SessionActivity> {
     switch (streamingEvent.type) {
         case "status":
-            // Lifecycle signals carry no activity; the store tracks only activities.
+        case "session_config_changed":
+            // Lifecycle and config signals carry no activity; the store tracks only activities.
             return current
 
         case "activity_created": {

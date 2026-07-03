@@ -6,6 +6,7 @@ import { type IsoTimestamp } from "./branded-types"
 
 export type ActivityState = "in_progress" | "complete" | "error" | "cancelled"
 export type TaskPermission = "accepted" | "denied" | "pending"
+export type SessionConfigKey = "tool_preset" | "model"
 
 // region: Client Events
 // Client events are inbound commands from the client. They are not persisted as conversation history.
@@ -13,6 +14,12 @@ export type TaskPermission = "accepted" | "denied" | "pending"
 export interface UserMessageEvent {
     type: "user_message"
     content: string
+}
+
+export interface PermissionChangeEvent {
+    type: "permission_change"
+    id: string
+    permission: TaskPermission
 }
 
 export interface CancelEvent {
@@ -23,7 +30,13 @@ export interface QuitEvent {
     type: "quit"
 }
 
-export type ClientEvent = UserMessageEvent | CancelEvent | QuitEvent
+export interface SessionConfigChangeEvent {
+    type: "session_config_change"
+    config_key: SessionConfigKey
+    new_value: string
+}
+
+export type ClientEvent = UserMessageEvent | PermissionChangeEvent | CancelEvent | QuitEvent | SessionConfigChangeEvent
 
 // endregion
 
@@ -133,6 +146,18 @@ export interface ActivityUpdatedEvent {
     activity: SessionActivity
 }
 
-export type StreamingEvent = ActivityCreatedEvent | ActivityDeltaEvent | ActivityUpdatedEvent | StatusEvent
+// Confirms that a session config change requested via `SessionConfigChangeEvent` has been applied.
+export interface SessionConfigChangedEvent {
+    type: "session_config_changed"
+    config_key: string
+    new_value: string
+}
+
+export type StreamingEvent =
+    | ActivityCreatedEvent
+    | ActivityDeltaEvent
+    | ActivityUpdatedEvent
+    | StatusEvent
+    | SessionConfigChangedEvent
 
 // endregion

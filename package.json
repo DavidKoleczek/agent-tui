@@ -18,16 +18,16 @@
         "@types/bun": "latest",
         "@types/react": "^19.2.17",
         "@types/react-reconciler": "^0.33.0",
-        "oxfmt": "0.55.0",
-        "oxlint": "1.70.0"
+        "oxfmt": "0.56.0",
+        "oxlint": "1.71.0"
     },
     "peerDependencies": {
         "typescript": "^5.9.3"
     },
     "dependencies": {
-        "@opentui/core": "0.4.1",
-        "@opentui/keymap": "0.4.1",
-        "@opentui/react": "0.4.1",
+        "@opentui/core": "0.4.2",
+        "@opentui/keymap": "0.4.2",
+        "@opentui/react": "0.4.2",
         "react": "^19.2.7"
     }
 }
