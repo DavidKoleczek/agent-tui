@@ -3,13 +3,19 @@ import { useEffect, useRef, useState } from "react"
 import { TowerTabs, type TowerTab } from "./tower-tabs"
 import { ControlPanel } from "./control-panel"
 import { SettingsPanel, type SettingsMenuItem } from "./settings-panel"
+import { enterControl, moveControlRow, moveControlValue } from "./control-components"
 import { Colors } from "../../lib/constants"
+import { type ControlConfigState } from "../../hooks"
 
 export interface ControlTowerProps {
     // Whether the tower currently holds keyboard focus. Drives navigation gating and highlight state.
     region: "chat" | "tower"
     // Working directory used by the embedded session picker.
     cwd: string
+    // Current session config view-model shown in the Control tab.
+    config: ControlConfigState
+    // Applies a config change: optimistic locally and sent to the server.
+    onChangeConfig: (key: string, value: string) => void
     // Asks the app to move keyboard focus into the tower (used by mouse interactions).
     onEnterTower: () => void
     // Asks the app to move keyboard focus back to the chat.
@@ -23,26 +29,38 @@ const TABS: readonly TowerTab[] = [
     { id: "settings", label: "Settings" },
 ]
 
+const CONTROL_INDEX = 0
 const SETTINGS_INDEX = 1
 const SETTINGS_ITEMS: readonly SettingsMenuItem[] = [
     { id: "resume", label: "Resume" },
     { id: "update", label: "Check for updates" },
 ]
 
-type Focus = { area: "tabs"; tabIndex: number } | { area: "menu"; itemIndex: number }
+type Focus =
+    | { area: "tabs"; tabIndex: number }
+    | { area: "menu"; itemIndex: number }
+    | { area: "control"; rowIndex: number; valueIndex: number }
 
 function itemsForTab(tabIndex: number): readonly SettingsMenuItem[] {
     return tabIndex === SETTINGS_INDEX ? SETTINGS_ITEMS : []
 }
 
-export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume }: ControlTowerProps) {
+export function ControlTower({
+    region,
+    cwd,
+    config,
+    onChangeConfig,
+    onEnterTower,
+    onExitToChat,
+    onResume,
+}: ControlTowerProps) {
     const [activeTab, setActiveTab] = useState(0)
     const [mode, setMode] = useState<"browse" | "resume" | "update">("browse")
     const [focus, setFocus] = useState<Focus>({ area: "tabs", tabIndex: 0 })
 
     // Latest values for the key handlers, so the navigation layer registers once per (region, mode) rather than per keypress.
-    const stateRef = useRef({ activeTab, focus })
-    stateRef.current = { activeTab, focus }
+    const stateRef = useRef({ activeTab, focus, config, onChangeConfig })
+    stateRef.current = { activeTab, focus, config, onChangeConfig }
 
     // When focus first enters the tower (chat -> tower) in browse mode, land on the active tab. Tracking the previous
     // region avoids fighting focus changes that happen while already inside the tower (e.g. backing out of the picker).
@@ -92,8 +110,13 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
                           {
                               key: "left",
                               cmd() {
-                                  const current = stateRef.current.focus
-                                  if (current.area === "tabs") {
+                                  const { focus: current, config: currentConfig } = stateRef.current
+                                  if (current.area === "control") {
+                                      setFocus({
+                                          area: "control",
+                                          ...moveControlValue(current, -1, currentConfig.options),
+                                      })
+                                  } else if (current.area === "tabs") {
                                       setFocus({ area: "tabs", tabIndex: Math.max(0, current.tabIndex - 1) })
                                   }
                               },
@@ -101,8 +124,13 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
                           {
                               key: "right",
                               cmd() {
-                                  const current = stateRef.current.focus
-                                  if (current.area === "tabs") {
+                                  const { focus: current, config: currentConfig } = stateRef.current
+                                  if (current.area === "control") {
+                                      setFocus({
+                                          area: "control",
+                                          ...moveControlValue(current, 1, currentConfig.options),
+                                      })
+                                  } else if (current.area === "tabs") {
                                       setFocus({
                                           area: "tabs",
                                           tabIndex: Math.min(TABS.length - 1, current.tabIndex + 1),
@@ -113,10 +141,24 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
                           {
                               key: "up",
                               cmd() {
-                                  const current = stateRef.current.focus
+                                  const { activeTab: tab, focus: current, config: currentConfig } = stateRef.current
+                                  if (current.area === "control") {
+                                      const next = moveControlRow(
+                                          current,
+                                          -1,
+                                          currentConfig.options,
+                                          currentConfig.current,
+                                      )
+                                      if (next === "exit-top") {
+                                          setFocus({ area: "tabs", tabIndex: tab })
+                                      } else {
+                                          setFocus({ area: "control", ...next })
+                                      }
+                                      return
+                                  }
                                   if (current.area !== "menu") return
                                   if (current.itemIndex === 0) {
-                                      setFocus({ area: "tabs", tabIndex: stateRef.current.activeTab })
+                                      setFocus({ area: "tabs", tabIndex: tab })
                                   } else {
                                       setFocus({ area: "menu", itemIndex: current.itemIndex - 1 })
                                   }
@@ -125,10 +167,26 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
                           {
                               key: "down",
                               cmd() {
-                                  const current = stateRef.current.focus
-                                  const items = itemsForTab(stateRef.current.activeTab)
+                                  const { activeTab: tab, focus: current, config: currentConfig } = stateRef.current
+                                  if (current.area === "control") {
+                                      const next = moveControlRow(
+                                          current,
+                                          1,
+                                          currentConfig.options,
+                                          currentConfig.current,
+                                      )
+                                      if (next !== "exit-top") setFocus({ area: "control", ...next })
+                                      return
+                                  }
+                                  const items = itemsForTab(tab)
                                   if (current.area === "tabs") {
-                                      if (items.length > 0) setFocus({ area: "menu", itemIndex: 0 })
+                                      if (tab === CONTROL_INDEX) {
+                                          if (!currentConfig.loaded) return
+                                          const entered = enterControl(currentConfig.options, currentConfig.current)
+                                          if (entered !== null) setFocus({ area: "control", ...entered })
+                                      } else if (items.length > 0) {
+                                          setFocus({ area: "menu", itemIndex: 0 })
+                                      }
                                   } else {
                                       setFocus({
                                           area: "menu",
@@ -140,11 +198,17 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
                           {
                               key: "return",
                               cmd() {
-                                  const current = stateRef.current.focus
-                                  if (current.area === "tabs") {
+                                  const { activeTab: tab, focus: current, config: currentConfig } = stateRef.current
+                                  if (current.area === "control") {
+                                      const option = currentConfig.options[current.rowIndex]
+                                      const value = option?.values[current.valueIndex]
+                                      if (option !== undefined && value !== undefined) {
+                                          stateRef.current.onChangeConfig(option.key, value)
+                                      }
+                                  } else if (current.area === "tabs") {
                                       activateTab(current.tabIndex)
                                   } else {
-                                      activateMenuItem(stateRef.current.activeTab, current.itemIndex)
+                                      activateMenuItem(tab, current.itemIndex)
                                   }
                               },
                           },
@@ -162,6 +226,10 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
 
     const focusedTabIndex = region === "tower" && focus.area === "tabs" ? focus.tabIndex : null
     const focusedMenuIndex = region === "tower" && focus.area === "menu" ? focus.itemIndex : null
+    const focusedControl =
+        region === "tower" && focus.area === "control"
+            ? { rowIndex: focus.rowIndex, valueIndex: focus.valueIndex }
+            : null
 
     return (
         <box
@@ -202,7 +270,17 @@ export function ControlTower({ region, cwd, onEnterTower, onExitToChat, onResume
                     onExitUpdateTop={cancelUpdate}
                 />
             ) : (
-                <ControlPanel />
+                <ControlPanel
+                    config={config}
+                    focus={focusedControl}
+                    onActivateValue={(rowIndex, valueIndex) => {
+                        onEnterTower()
+                        setFocus({ area: "control", rowIndex, valueIndex })
+                        const option = config.options[rowIndex]
+                        const value = option?.values[valueIndex]
+                        if (option !== undefined && value !== undefined) onChangeConfig(option.key, value)
+                    }}
+                />
             )}
         </box>
     )

@@ -1,3 +1,4 @@
+// The resume-session picker: browse prior sessions and reopen the chosen one.
 import { type BoxRenderable } from "@opentui/core"
 import { useBindings, type UseBindingsLayer } from "@opentui/keymap/react"
 import { useEffect, useRef, useState } from "react"

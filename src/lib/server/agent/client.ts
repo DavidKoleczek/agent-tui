@@ -1,4 +1,11 @@
-import type { ClientEvent, StreamingEvent, UserMessageEvent, CancelEvent, QuitEvent } from "../../../schemas/activities"
+import type {
+    ClientEvent,
+    StreamingEvent,
+    UserMessageEvent,
+    CancelEvent,
+    QuitEvent,
+    SessionConfigChangeEvent,
+} from "../../../schemas/activities"
 import { settleWithin } from "../lifecycle/wait"
 import type { LogFile } from "../session/server-log"
 import type { WsLog } from "../session/ws-log"
@@ -6,18 +13,18 @@ import type { WsLog } from "../session/ws-log"
 export interface ConnectAgentWebSocketOptions {
     port: number
     workingDir: string
-    // Absolute path to an existing SQLite session database to resume. Omit to let the server create a new session.
-    sessionDatabase?: string
+    sessionDatabase: string
     log: WsLog
-    // Server-stdout log (the human-readable .log) used to record send-path timing next to the startup timing for perf analysis.
     serverLog: LogFile
 }
 
 export interface AgentWSClient {
+    sessionDatabase: string
     isReady(): boolean
     subscribeReady(listener: () => void): () => void
     subscribeActivities(listener: (activity: StreamingEvent) => void): () => void
     sendUserMessage(content: string): boolean
+    sendSessionConfigChange(configKey: string, newValue: string): boolean
     cancel(): boolean
     quit(): boolean
     warn(message: string): void
@@ -86,6 +93,7 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
     let closing: Promise<void> | null = null
 
     return {
+        sessionDatabase,
         isReady: () => ws.readyState === WebSocket.OPEN,
         subscribeReady(listener) {
             readyListeners.add(listener)
@@ -107,6 +115,14 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
                 serverLog.write(`[agent-tui] user message sent (chars=${content.length})\n`)
             }
             return sent
+        },
+        sendSessionConfigChange(configKey, newValue) {
+            const activity: SessionConfigChangeEvent = {
+                type: "session_config_change",
+                config_key: configKey,
+                new_value: newValue,
+            }
+            return trySend(activity)
         },
         cancel() {
             const activity: CancelEvent = { type: "cancel" }
@@ -138,9 +154,8 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
     }
 }
 
-function buildUrl(port: number, workingDir: string, sessionDatabase: string | undefined): string {
-    const params = new URLSearchParams({ working_dir: workingDir })
-    if (sessionDatabase !== undefined) params.set("session_database", sessionDatabase)
+function buildUrl(port: number, workingDir: string, sessionDatabase: string): string {
+    const params = new URLSearchParams({ working_dir: workingDir, session_database: sessionDatabase })
     return `ws://127.0.0.1:${port}/agent?${params.toString()}`
 }
 

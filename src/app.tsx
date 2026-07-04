@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { ActivityLog, ControlTower, HelpHint, StatusLine, TextInput, type TextInputHandle } from "./components"
-import { useCtrlCExit, useTowerKeybinds } from "./hooks"
+import { useCtrlCExit, useSessionConfig, useTowerKeybinds } from "./hooks"
 import { createActivityStore } from "./lib/activity-store"
 import { fetchSessionActivities, type AgentWSClient, type ServerHandle } from "./lib/server"
 import type { ActivityCreatedEvent, ErrorActivity, StatusId } from "./schemas/activities"
@@ -22,6 +22,21 @@ export function App({ server, onBeforeExit }: AppProps) {
     const agentWSClientRef = useRef<AgentWSClient | null>(null)
     // Tears down the subscriptions on the currently wired client; replaced whenever we wire a new one.
     const teardownRef = useRef<() => void>(() => {})
+    // Session config shown and edited in the Control tower.
+    const {
+        state: sessionConfigState,
+        load: loadSessionConfig,
+        reset: resetSessionConfig,
+        setLocal: setLocalSessionConfig,
+        applyConfirmed: applyConfirmedSessionConfig,
+    } = useSessionConfig()
+    const applyConfirmedRef = useRef(applyConfirmedSessionConfig)
+    applyConfirmedRef.current = applyConfirmedSessionConfig
+    // Database path of the currently wired session.
+    const [sessionDatabase, setSessionDatabase] = useState<string | null>(null)
+    // True once the agent worker has entered its run loop (agent_running) for the current connection. Only then
+    // does the session database file exist, so it is the safe point to read the session config over HTTP.
+    const [dbReady, setDbReady] = useState(false)
     const [ready, setReady] = useState(false)
     // Latest server lifecycle status. Null means there is nothing to show (idle, or after agent_turn_ended).
     const [status, setStatus] = useState<StatusId | null>(null)
@@ -64,18 +79,28 @@ export function App({ server, onBeforeExit }: AppProps) {
         (client: AgentWSClient) => {
             teardownRef.current()
             agentWSClientRef.current = client
+            setSessionDatabase(client.sessionDatabase)
+            setDbReady(false)
             logRef.current = (message) => client.warn(message)
             setReady(client.isReady())
             const unsubscribes = [
                 client.subscribeReady(() => {
                     setReady(client.isReady())
-                    // A closed socket means the server is gone; drop any stale status so it cannot linger on reconnect.
-                    if (!client.isReady()) setStatus(null)
+                    // A closed socket means the server is gone; drop any stale status and re-arm the config gate.
+                    if (!client.isReady()) {
+                        setStatus(null)
+                        setDbReady(false)
+                    }
                 }),
                 client.subscribeActivities((event) => {
                     // Track the latest phase for the status line; agent_running is a sentinel that clears the status.
                     if (event.type === "status") {
                         setStatus(event.status_id === "agent_running" ? null : event.status_id)
+                        // agent_running is emitted from the worker's run loop, so the session database now exists.
+                        if (event.status_id === "agent_running") setDbReady(true)
+                    }
+                    if (event.type === "session_config_changed") {
+                        applyConfirmedRef.current(event.config_key, event.new_value)
                     }
                     store.applyStreamingEvent(event)
                 }),
@@ -100,6 +125,17 @@ export function App({ server, onBeforeExit }: AppProps) {
             teardownRef.current()
         }
     }, [server, wireClient])
+
+    // Load the session's config once the agent worker is running so the Control tower reflects real state
+    useEffect(() => {
+        if (!dbReady) {
+            resetSessionConfig()
+            return
+        }
+        const baseUrl = server.httpBaseUrl()
+        if (baseUrl === null || sessionDatabase === null) return
+        loadSessionConfig({ baseUrl, sessionDatabase })
+    }, [dbReady, sessionDatabase, server, loadSessionConfig, resetSessionConfig])
 
     // Loads a prior session's activities, renders them, and reconnects the agent so new messages continue that session.
     const handleResumeSelect = useCallback(
@@ -137,6 +173,15 @@ export function App({ server, onBeforeExit }: AppProps) {
         [store],
     )
 
+    const handleChangeConfig = useCallback(
+        (key: string, value: string) => {
+            // Update the tower immediately, then send the change; the server echoes a confirmation that reconciles it.
+            setLocalSessionConfig(key, value)
+            agentWSClientRef.current?.sendSessionConfigChange(key, value)
+        },
+        [setLocalSessionConfig],
+    )
+
     return (
         <box flexDirection="column" flexGrow={1}>
             <box flexDirection="row" flexGrow={1}>
@@ -155,6 +200,8 @@ export function App({ server, onBeforeExit }: AppProps) {
                     <ControlTower
                         region={region}
                         cwd={server.workingDir}
+                        config={sessionConfigState}
+                        onChangeConfig={handleChangeConfig}
                         onEnterTower={() => setRegion("tower")}
                         onExitToChat={() => setRegion("chat")}
                         onResume={handleResumeSelect}

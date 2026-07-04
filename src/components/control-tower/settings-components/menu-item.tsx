@@ -1,4 +1,5 @@
-import { Colors } from "../../lib/constants"
+// A selectable row in the Settings menu.
+import { Colors } from "../../../lib/constants"
 
 interface MenuItemProps {
     label: string

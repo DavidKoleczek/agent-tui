@@ -6,7 +6,6 @@ import { type IsoTimestamp } from "./branded-types"
 
 export type ActivityState = "in_progress" | "complete" | "error" | "cancelled"
 export type TaskPermission = "accepted" | "denied" | "pending"
-export type SessionConfigKey = "tool_preset" | "model"
 
 // region: Client Events
 // Client events are inbound commands from the client. They are not persisted as conversation history.
@@ -32,7 +31,8 @@ export interface QuitEvent {
 
 export interface SessionConfigChangeEvent {
     type: "session_config_change"
-    config_key: SessionConfigKey
+    // A config key advertised by `GET /capabilities`; the server validates it.
+    config_key: string
     new_value: string
 }
 

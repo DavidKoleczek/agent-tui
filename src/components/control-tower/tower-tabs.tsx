@@ -1,3 +1,4 @@
+// The control tower's tab row (Control and Settings).
 import { TextAttributes } from "@opentui/core"
 import { Colors } from "../../lib/constants"
 
@@ -17,7 +18,7 @@ interface TowerTabsProps {
 
 export function TowerTabs({ tabs, activeIndex, focusedIndex, onActivate }: TowerTabsProps) {
     return (
-        <box flexDirection="row" flexShrink={0}>
+        <box flexDirection="row" flexShrink={0} columnGap={2}>
             {tabs.map((tab, index) => {
                 const isActive = index === activeIndex
                 const isFocused = index === focusedIndex
@@ -26,8 +27,6 @@ export function TowerTabs({ tabs, activeIndex, focusedIndex, onActivate }: Tower
                     <box
                         key={tab.id}
                         backgroundColor={isFocused ? Colors.accent : undefined}
-                        paddingLeft={1}
-                        paddingRight={1}
                         flexShrink={0}
                         onMouseDown={() => onActivate(index)}
                     >

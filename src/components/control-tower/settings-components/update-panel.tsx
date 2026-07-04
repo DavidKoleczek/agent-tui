@@ -1,3 +1,4 @@
+// The updater panel: check for and install a new version of the app.
 import { useBindings, type UseBindingsLayer } from "@opentui/keymap/react"
 import { useEffect, useRef, useState } from "react"
 import { applyUpdate, checkForUpdate, isDevBuild, type UpdateCheck } from "../../../lib/tui"

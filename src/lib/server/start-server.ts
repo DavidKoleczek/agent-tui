@@ -8,7 +8,7 @@ import {
     type ServerProcess,
     waitForHealthz,
 } from "./lifecycle"
-import { createLogFile, createWsLog, type LogFile, type WsLog } from "./session"
+import { createLogFile, createWsLog, generateSessionDatabasePath, type LogFile, type WsLog } from "./session"
 
 export interface ServerHandle {
     // Resolves with the live process.
@@ -55,10 +55,12 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
             currentClient = null
             void previous.close()
         }
+        // A new session gets a freshly generated path and can reuse it for the session-config HTTP endpoints
+        // resume passes the existing database path through unchanged.
         const client = connectAgentWebSocket({
             port: serverPort,
             workingDir: cwd,
-            sessionDatabase,
+            sessionDatabase: sessionDatabase ?? generateSessionDatabasePath(cwd),
             log: wsLog,
             serverLog: log,
         })
