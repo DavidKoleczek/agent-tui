@@ -1,9 +1,9 @@
 import { type ScrollBoxRenderable } from "@opentui/core"
 import { useBindings } from "@opentui/keymap/react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef } from "react"
 import { DEFAULT_SCROLL_SPEED } from "../../lib/constants"
 import { activityLogBindings } from "../../lib/tui"
-import { type SessionActivity } from "../../schemas/activities"
+import { type SessionActivity, type TaskPermission } from "../../schemas/activities"
 import { AssistantActivity } from "./assistant-activity"
 import { ReasoningActivity } from "./reasoning-activity"
 import { CustomSpeedScroll, enforceMinimumThumbSize } from "./scroll-helpers"
@@ -14,15 +14,17 @@ import { ErrorActivity } from "./error-activity"
 
 interface ActivityLogProps {
     activities: ReadonlyMap<string, SessionActivity>
-    // Notifies the parent whether the expanded task overlay is open, so it can release the chat input's focus while it is.
-    onExpandedChange?: (open: boolean) => void
+    // Id of the task shown in the expanded overlay, or null when closed.
+    expandedTaskId: string | null
+    // Opens or closes (null) the expanded task overlay.
+    onExpandTask: (id: string | null) => void
+    // Sends the user's accept/deny decision for a tool from inside the expanded overlay.
+    onPermissionChange: (id: string, permission: TaskPermission) => void
 }
 
-export function ActivityLog({ activities, onExpandedChange }: ActivityLogProps) {
+export function ActivityLog({ activities, expandedTaskId, onExpandTask, onPermissionChange }: ActivityLogProps) {
     const scrollRef = useRef<ScrollBoxRenderable | null>(null)
     const scrollAcceleration = useMemo(() => new CustomSpeedScroll(DEFAULT_SCROLL_SPEED), [])
-    // Id of the task activity shown in the expanded overlay, or null when it is closed.
-    const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
 
     useBindings(
         () =>
@@ -35,11 +37,6 @@ export function ActivityLog({ activities, onExpandedChange }: ActivityLogProps) 
     // The overlay only applies to task activities; a missing or non-task id resolves to undefined and auto-closes it.
     const expanded = expandedTaskId !== null ? activities.get(expandedTaskId) : undefined
     const expandedTask = expanded?.type === "task" ? expanded : undefined
-    const overlayOpen = expandedTask !== undefined
-
-    useEffect(() => {
-        onExpandedChange?.(overlayOpen)
-    }, [overlayOpen, onExpandedChange])
 
     return (
         <box flexGrow={1} flexShrink={1} position="relative">
@@ -86,7 +83,7 @@ export function ActivityLog({ activities, onExpandedChange }: ActivityLogProps) 
                                     taskResult={activity.result ?? ""}
                                     state={activity.state}
                                     permission={activity.permission}
-                                    onExpand={() => setExpandedTaskId(activity.id)}
+                                    onExpand={() => onExpandTask(activity.id)}
                                 />
                             )
                         case "assistant":
@@ -115,7 +112,11 @@ export function ActivityLog({ activities, onExpandedChange }: ActivityLogProps) 
                 })}
             </scrollbox>
             {expandedTask !== undefined ? (
-                <ExpandedTaskView activity={expandedTask} onClose={() => setExpandedTaskId(null)} />
+                <ExpandedTaskView
+                    activity={expandedTask}
+                    onClose={() => onExpandTask(null)}
+                    onPermissionChange={onPermissionChange}
+                />
             ) : null}
         </box>
     )

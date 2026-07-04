@@ -2,7 +2,13 @@
 The webserver streams StreamingEvents which will be converted into SessionActivities as they come in.
 */
 
-import { type SessionActivity, type UserActivity, type StreamingEvent } from "../../schemas/activities"
+import {
+    type SessionActivity,
+    type UserActivity,
+    type TaskActivity,
+    type TaskPermission,
+    type StreamingEvent,
+} from "../../schemas/activities"
 import { nowIso } from "../../schemas/branded-types"
 import { applyStreamingEvent, type ReducerLog, noopLog, setActivity } from "./reducer"
 
@@ -10,6 +16,8 @@ export interface ActivityStore {
     subscribe: (listener: () => void) => () => void
     getSnapshot: () => ReadonlyMap<string, SessionActivity>
     pushUserMessage: (content: string) => void
+    // Optimistically records a tool approval decision so the UI reacts instantly; reconciled by the server's echo.
+    setTaskPermission: (id: string, permission: TaskPermission) => void
     applyStreamingEvent: (event: StreamingEvent) => void
     // Replaces the entire activity map with a known set, used when resuming a prior session.
     seedActivities: (activities: readonly SessionActivity[]) => void
@@ -54,6 +62,14 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
                 content,
             }
             notify(setActivity(activities, userActivity))
+        },
+        setTaskPermission(id, permission) {
+            // Patch only the permission: the status dot derives from state + permission, and the server's echoed
+            // activity update reconciles the authoritative state and result a moment later.
+            const existing = activities.get(id)
+            if (existing === undefined || existing.type !== "task" || existing.permission === permission) return
+            const updated: TaskActivity = { ...existing, permission }
+            notify(setActivity(activities, updated))
         },
         // Takes a StreamingEvent, runs it through the applyStreamingEvent reducer
         // which either returns a new map, or the current one, and then notifies subscribers.

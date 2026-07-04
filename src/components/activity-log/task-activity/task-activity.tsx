@@ -3,7 +3,7 @@ import { useRenderer } from "@opentui/react"
 import { useState } from "react"
 import { Colors } from "../../../lib/constants"
 import { type ActivityState, type TaskPermission } from "../../../schemas/activities"
-import { formatArguments, formatResultLines, formatTaskName } from "./task-format"
+import { formatArguments, formatResultLines, formatTaskName } from "../../../lib/tui"
 import { resolveDotStyle } from "./task-status"
 import { usePulse } from "./use-pulse"
 

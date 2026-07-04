@@ -1,5 +1,4 @@
-// Pure formatting helpers for the task (tool call) activity row. Kept out of the component so the display stays small
-// and the truncation rules are easy to reason about and change in one place.
+// Formatting helpers for task activities
 
 const MAX_KEY_CHARS = 20
 // Values longer than this are elided in the middle so a single argument cannot blow out the header line.

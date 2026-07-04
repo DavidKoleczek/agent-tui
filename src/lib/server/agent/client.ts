@@ -5,6 +5,8 @@ import type {
     CancelEvent,
     QuitEvent,
     SessionConfigChangeEvent,
+    PermissionChangeEvent,
+    TaskPermission,
 } from "../../../schemas/activities"
 import { settleWithin } from "../lifecycle/wait"
 import type { LogFile } from "../session/server-log"
@@ -25,6 +27,7 @@ export interface AgentWSClient {
     subscribeActivities(listener: (activity: StreamingEvent) => void): () => void
     sendUserMessage(content: string): boolean
     sendSessionConfigChange(configKey: string, newValue: string): boolean
+    sendPermissionChange(id: string, permission: TaskPermission): boolean
     cancel(): boolean
     quit(): boolean
     warn(message: string): void
@@ -122,6 +125,10 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
                 config_key: configKey,
                 new_value: newValue,
             }
+            return trySend(activity)
+        },
+        sendPermissionChange(id, permission) {
+            const activity: PermissionChangeEvent = { type: "permission_change", id, permission }
             return trySend(activity)
         },
         cancel() {

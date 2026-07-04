@@ -4,19 +4,21 @@ import { fg, t, TextAttributes, type KeyEvent, type ScrollBoxRenderable } from "
 import { useKeyboard } from "@opentui/react"
 import { useMemo, useRef, useState } from "react"
 import { Colors, DEFAULT_SCROLL_SPEED } from "../../../lib/constants"
-import { type TaskActivity } from "../../../schemas/activities"
+import { type TaskActivity, type TaskPermission } from "../../../schemas/activities"
 import { CustomSpeedScroll, enforceMinimumThumbSize } from "../scroll-helpers"
-import { formatTaskName, fullArgumentEntries } from "./task-format"
+import { formatTaskName, fullArgumentEntries } from "../../../lib/tui"
+import { ACCEPT_GLYPH, ApprovalButton, DENY_GLYPH } from "../../common"
 import { formatStateLabel, resolveDotStyle } from "./task-status"
 
 interface ExpandedTaskViewProps {
     activity: TaskActivity
     onClose: () => void
+    onPermissionChange: (id: string, permission: TaskPermission) => void
 }
 
 const STATUS_DOT = "\u25CF"
 
-export function ExpandedTaskView({ activity, onClose }: ExpandedTaskViewProps) {
+export function ExpandedTaskView({ activity, onClose, onPermissionChange }: ExpandedTaskViewProps) {
     const scrollRef = useRef<ScrollBoxRenderable | null>(null)
     const scrollAcceleration = useMemo(() => new CustomSpeedScroll(DEFAULT_SCROLL_SPEED), [])
 
@@ -42,9 +44,11 @@ export function ExpandedTaskView({ activity, onClose }: ExpandedTaskViewProps) {
     })
 
     const dotColor = resolveDotStyle(activity.state, activity.permission).color
-    const header = t`${fg(dotColor)(STATUS_DOT)} ${formatTaskName(activity.name)}  ${fg(Colors.mutedText)(
-        `${formatStateLabel(activity.state)}  ${activity.permission}`,
-    )}`
+    const nameHeader = t`${fg(dotColor)(STATUS_DOT)} ${formatTaskName(activity.name)}`
+    // Without the accept/deny buttons sitting between them, pad the status so it is not cramped against the name.
+    const statusLabel = `${formatStateLabel(activity.state)}  ${activity.permission}`
+    const statusContent = activity.permission === "pending" ? statusLabel : ` ${statusLabel}`
+    const statusHeader = t`${fg(Colors.mutedText)(statusContent)}`
 
     const entries = fullArgumentEntries(activity.arguments ?? {})
     const result = activity.result ?? ""
@@ -80,7 +84,26 @@ export function ExpandedTaskView({ activity, onClose }: ExpandedTaskViewProps) {
                 paddingRight={1}
                 scrollAcceleration={scrollAcceleration}
             >
-                <text content={header} />
+                <box flexDirection="row" columnGap={1}>
+                    <box flexShrink={1} overflow="hidden">
+                        <text content={nameHeader} wrapMode="none" />
+                    </box>
+                    {activity.permission === "pending" ? (
+                        <box flexDirection="row" flexShrink={0}>
+                            <ApprovalButton
+                                label={ACCEPT_GLYPH}
+                                paddingX={1}
+                                onPress={() => onPermissionChange(activity.id, "accepted")}
+                            />
+                            <ApprovalButton
+                                label={DENY_GLYPH}
+                                paddingX={1}
+                                onPress={() => onPermissionChange(activity.id, "denied")}
+                            />
+                        </box>
+                    ) : null}
+                    <text content={statusHeader} />
+                </box>
                 <text fg={Colors.accent} attributes={TextAttributes.BOLD} marginTop={1}>
                     Arguments
                 </text>

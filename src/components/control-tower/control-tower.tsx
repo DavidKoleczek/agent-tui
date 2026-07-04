@@ -6,6 +6,7 @@ import { SettingsPanel, type SettingsMenuItem } from "./settings-panel"
 import { enterControl, moveControlRow, moveControlValue } from "./control-components"
 import { Colors } from "../../lib/constants"
 import { type ControlConfigState } from "../../hooks"
+import { type TaskActivity, type TaskPermission } from "../../schemas/activities"
 
 export interface ControlTowerProps {
     // Whether the tower currently holds keyboard focus. Drives navigation gating and highlight state.
@@ -16,6 +17,12 @@ export interface ControlTowerProps {
     config: ControlConfigState
     // Applies a config change: optimistic locally and sent to the server.
     onChangeConfig: (key: string, value: string) => void
+    // Tool calls awaiting the user's approval, shown in the Control tab.
+    pendingApprovals: readonly TaskActivity[]
+    // Sends the user's accept/deny decision for a pending tool to the server.
+    onPermissionChange: (id: string, permission: TaskPermission) => void
+    // Opens a tool's expanded view from its approval card in the Control tab.
+    onExpandTask: (id: string) => void
     // Asks the app to move keyboard focus into the tower (used by mouse interactions).
     onEnterTower: () => void
     // Asks the app to move keyboard focus back to the chat.
@@ -50,6 +57,9 @@ export function ControlTower({
     cwd,
     config,
     onChangeConfig,
+    pendingApprovals,
+    onPermissionChange,
+    onExpandTask,
     onEnterTower,
     onExitToChat,
     onResume,
@@ -280,6 +290,9 @@ export function ControlTower({
                         const value = option?.values[valueIndex]
                         if (option !== undefined && value !== undefined) onChangeConfig(option.key, value)
                     }}
+                    pendingApprovals={pendingApprovals}
+                    onPermissionChange={onPermissionChange}
+                    onExpandTask={onExpandTask}
                 />
             )}
         </box>

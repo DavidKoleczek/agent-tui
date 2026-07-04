@@ -3,7 +3,7 @@ import { ActivityLog, ControlTower, HelpHint, StatusLine, TextInput, type TextIn
 import { useCtrlCExit, useSessionConfig, useTowerKeybinds } from "./hooks"
 import { createActivityStore } from "./lib/activity-store"
 import { fetchSessionActivities, type AgentWSClient, type ServerHandle } from "./lib/server"
-import type { ActivityCreatedEvent, ErrorActivity, StatusId } from "./schemas/activities"
+import type { ActivityCreatedEvent, ErrorActivity, StatusId, TaskActivity, TaskPermission } from "./schemas/activities"
 import { nowIso } from "./schemas/branded-types"
 
 export interface AppProps {
@@ -17,6 +17,14 @@ export function App({ server, onBeforeExit }: AppProps) {
     const store = useMemo(() => createActivityStore({ log: { warn: (m) => logRef.current(m) } }), [])
     // useExternalStore let's us manage our own subscription logic and only re-render when activities change.
     const activities = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+    // Tool calls the server has paused for the user's approval, surfaced in the Control tower.
+    const pendingApprovals = useMemo(
+        () =>
+            Array.from(activities.values()).filter(
+                (activity): activity is TaskActivity => activity.type === "task" && activity.permission === "pending",
+            ),
+        [activities],
+    )
     // Ref to the TextInput component used to manage the user input handling logic outside of the component.
     const inputRef = useRef<TextInputHandle | null>(null)
     const agentWSClientRef = useRef<AgentWSClient | null>(null)
@@ -44,8 +52,12 @@ export function App({ server, onBeforeExit }: AppProps) {
     const [towerOpen, setTowerOpen] = useState(true)
     // Which region owns keyboard focus. The chat textarea is focused only in "chat".
     const [region, setRegion] = useState<"chat" | "tower">("chat")
-    // Whether the activity log's expanded task overlay is open. The chat input releases focus while it is.
-    const [overlayOpen, setOverlayOpen] = useState(false)
+    // Id of the task shown in the expanded overlay, or null when closed.
+    const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
+    // The overlay only applies to task activities; a missing or non-task id keeps it closed. The chat input releases
+    // its focus while the overlay is open.
+    const expandedActivity = expandedTaskId !== null ? activities.get(expandedTaskId) : undefined
+    const overlayOpen = expandedActivity?.type === "task"
 
     // Hook that registers a global keyboard listener. It returns the currently armed Ctrl-C step.
     const ctrlCHint = useCtrlCExit({
@@ -182,11 +194,27 @@ export function App({ server, onBeforeExit }: AppProps) {
         [setLocalSessionConfig],
     )
 
+    const handlePermissionChange = useCallback(
+        (id: string, permission: TaskPermission) => {
+            // Optimistically apply the decision so the card leaves the list instantly, but only once the send
+            // succeeds: a closed socket means the server will never process it, so the card must stay pending.
+            // The server's echoed activity update reconciles the authoritative state and result.
+            const sent = agentWSClientRef.current?.sendPermissionChange(id, permission) ?? false
+            if (sent) store.setTaskPermission(id, permission)
+        },
+        [store],
+    )
+
     return (
         <box flexDirection="column" flexGrow={1}>
             <box flexDirection="row" flexGrow={1}>
                 <box flexDirection="column" flexGrow={1} onMouseDown={() => setRegion("chat")}>
-                    <ActivityLog activities={activities} onExpandedChange={setOverlayOpen} />
+                    <ActivityLog
+                        activities={activities}
+                        expandedTaskId={expandedTaskId}
+                        onExpandTask={setExpandedTaskId}
+                        onPermissionChange={handlePermissionChange}
+                    />
                     <TextInput
                         ref={inputRef}
                         onSubmit={handleSubmit}
@@ -202,6 +230,9 @@ export function App({ server, onBeforeExit }: AppProps) {
                         cwd={server.workingDir}
                         config={sessionConfigState}
                         onChangeConfig={handleChangeConfig}
+                        pendingApprovals={pendingApprovals}
+                        onPermissionChange={handlePermissionChange}
+                        onExpandTask={setExpandedTaskId}
                         onEnterTower={() => setRegion("tower")}
                         onExitToChat={() => setRegion("chat")}
                         onResume={handleResumeSelect}
