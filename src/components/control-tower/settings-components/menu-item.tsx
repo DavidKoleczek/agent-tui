@@ -1,4 +1,5 @@
 // A selectable row in the Settings menu.
+import { useState } from "react"
 import { Colors } from "../../../lib/constants"
 
 interface MenuItemProps {
@@ -9,16 +10,20 @@ interface MenuItemProps {
 }
 
 export function MenuItem({ label, focused, onActivate }: MenuItemProps) {
-    const marker = focused ? ">" : " "
+    const [hovered, setHovered] = useState(false)
+    const highlighted = focused || hovered
+
     return (
         <box
-            backgroundColor={focused ? Colors.accent : undefined}
+            backgroundColor={highlighted ? Colors.accent : undefined}
             paddingLeft={1}
             paddingRight={1}
             flexShrink={0}
+            onMouseOver={() => setHovered(true)}
+            onMouseOut={() => setHovered(false)}
             onMouseDown={onActivate}
         >
-            <text fg={focused ? Colors.onAccentText : undefined}>{`${marker} ${label}`}</text>
+            <text fg={highlighted ? Colors.onAccentText : undefined}>{label}</text>
         </box>
     )
 }

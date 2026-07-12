@@ -1,5 +1,6 @@
 // The control tower's tab row (Control and Settings).
 import { TextAttributes } from "@opentui/core"
+import { useState } from "react"
 import { Colors } from "../../lib/constants"
 
 interface TowerTab {
@@ -17,17 +18,22 @@ interface TowerTabsProps {
 }
 
 export function TowerTabs({ tabs, activeIndex, focusedIndex, onActivate }: TowerTabsProps) {
+    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+
     return (
         <box flexDirection="row" flexShrink={0} columnGap={2}>
             {tabs.map((tab, index) => {
                 const isActive = index === activeIndex
                 const isFocused = index === focusedIndex
-                const textColor = isFocused ? Colors.onAccentText : isActive ? Colors.activeText : Colors.mutedText
+                const isHighlighted = isFocused || index === hoveredIndex
+                const textColor = isHighlighted ? Colors.onAccentText : isActive ? Colors.activeText : Colors.mutedText
                 return (
                     <box
                         key={tab.id}
-                        backgroundColor={isFocused ? Colors.accent : undefined}
+                        backgroundColor={isHighlighted ? Colors.accent : undefined}
                         flexShrink={0}
+                        onMouseOver={() => setHoveredIndex(index)}
+                        onMouseOut={() => setHoveredIndex(null)}
                         onMouseDown={() => onActivate(index)}
                     >
                         <text fg={textColor} attributes={isActive ? TextAttributes.BOLD : undefined}>

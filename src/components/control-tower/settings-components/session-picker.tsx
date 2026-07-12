@@ -37,17 +37,21 @@ interface SessionRowProps {
 }
 
 function SessionRow({ selected, relativeTime, preview, loading, onActivate }: SessionRowProps) {
+    const [hovered, setHovered] = useState(false)
+    const highlighted = selected || hovered
     const marker = selected ? ">" : " "
     const body = preview ?? (loading ? "Loading..." : "(no messages)")
-    const bodyColor = selected ? Colors.onAccentText : preview === null ? Colors.mutedText : undefined
-    const timeColor = selected ? Colors.onAccentText : Colors.mutedText
+    const bodyColor = highlighted ? Colors.onAccentText : preview === null ? Colors.mutedText : undefined
+    const timeColor = highlighted ? Colors.onAccentText : Colors.mutedText
 
     return (
         <box
-            backgroundColor={selected ? Colors.accent : undefined}
+            backgroundColor={highlighted ? Colors.accent : undefined}
             paddingLeft={1}
             paddingRight={1}
             flexShrink={0}
+            onMouseOver={() => setHovered(true)}
+            onMouseOut={() => setHovered(false)}
             onMouseDown={onActivate}
         >
             <text fg={bodyColor}>{`${marker} ${body}`}</text>
@@ -66,7 +70,7 @@ function PageButton({ label, onPress }: PageButtonProps) {
 
     return (
         <box
-            backgroundColor={hovered ? Colors.rowHover : undefined}
+            backgroundColor={hovered ? Colors.accent : undefined}
             paddingLeft={1}
             paddingRight={1}
             flexShrink={0}
@@ -78,7 +82,7 @@ function PageButton({ label, onPress }: PageButtonProps) {
                 onPress()
             }}
         >
-            <text fg={hovered ? Colors.activeText : Colors.mutedText}>{label}</text>
+            <text fg={hovered ? Colors.onAccentText : Colors.mutedText}>{label}</text>
         </box>
     )
 }
@@ -234,7 +238,7 @@ export function SessionPicker({
                     pageRows.map((row, index) => (
                         <SessionRow
                             key={row.path}
-                            selected={index === selected}
+                            selected={active && index === selected}
                             relativeTime={formatRelativeTime(row.modifiedMs)}
                             preview={row.lastUserMessage}
                             loading={false}
