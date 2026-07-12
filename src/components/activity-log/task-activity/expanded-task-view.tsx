@@ -135,7 +135,8 @@ function CloseButton({ onClose }: { onClose: () => void }) {
             fg={hovered ? Colors.activeText : Colors.mutedText}
             onMouseOver={() => setHovered(true)}
             onMouseOut={() => setHovered(false)}
-            onMouseDown={(event) => {
+            onMouseDown={(event) => event.stopPropagation()}
+            onMouseUp={(event) => {
                 event.stopPropagation()
                 onClose()
             }}
