@@ -27,7 +27,7 @@ export interface AgentWSClient {
     subscribeActivities(listener: (activity: StreamingEvent) => void): () => void
     sendUserMessage(content: string): boolean
     sendSessionConfigChange(configKey: string, newValue: string): boolean
-    sendPermissionChange(id: string, permission: TaskPermission): boolean
+    sendPermissionChange(agentId: string, id: string, permission: TaskPermission): boolean
     cancel(): boolean
     quit(): boolean
     warn(message: string): void
@@ -127,8 +127,13 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
             }
             return trySend(activity)
         },
-        sendPermissionChange(id, permission) {
-            const activity: PermissionChangeEvent = { type: "permission_change", id, permission }
+        sendPermissionChange(agentId, id, permission) {
+            const activity: PermissionChangeEvent = {
+                type: "permission_change",
+                agent_id: agentId,
+                id,
+                permission,
+            }
             return trySend(activity)
         },
         cancel() {

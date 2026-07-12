@@ -17,7 +17,7 @@ export interface ActivityStore {
     getSnapshot: () => ReadonlyMap<string, SessionActivity>
     pushUserMessage: (content: string) => void
     // Optimistically records a tool approval decision so the UI reacts instantly; reconciled by the server's echo.
-    setTaskPermission: (id: string, permission: TaskPermission) => void
+    setTaskPermission: (agentId: string, id: string, permission: TaskPermission) => void
     applyStreamingEvent: (event: StreamingEvent) => void
     // Replaces the entire activity map with a known set, used when resuming a prior session.
     seedActivities: (activities: readonly SessionActivity[]) => void
@@ -56,6 +56,7 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
         pushUserMessage(content) {
             const userActivity: UserActivity = {
                 id: crypto.randomUUID(),
+                agent_id: "main",
                 type: "user",
                 state: "complete",
                 timestamp: nowIso(),
@@ -63,11 +64,25 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
             }
             notify(setActivity(activities, userActivity))
         },
-        setTaskPermission(id, permission) {
+        setTaskPermission(agentId, id, permission) {
             // Patch only the permission: the status dot derives from state + permission, and the server's echoed
             // activity update reconciles the authoritative state and result a moment later.
             const existing = activities.get(id)
-            if (existing === undefined || existing.type !== "task" || existing.permission === permission) return
+            if (existing === undefined) {
+                log.warn(`permission change for unknown activity ${id}; ignoring it`)
+                return
+            }
+            if (existing.type !== "task") {
+                log.warn(`permission change for non-task activity ${id}; ignoring it`)
+                return
+            }
+            if (existing.agent_id !== agentId) {
+                log.warn(
+                    `permission change for activity ${id} owned by agent ${existing.agent_id} was attributed to agent ${agentId}; ignoring it`,
+                )
+                return
+            }
+            if (existing.permission === permission) return
             const updated: TaskActivity = { ...existing, permission }
             notify(setActivity(activities, updated))
         },

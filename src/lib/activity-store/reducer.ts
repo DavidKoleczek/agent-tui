@@ -32,6 +32,12 @@ export function applyStreamingEvent(
 
         case "activity_created": {
             const { activity } = streamingEvent
+            if (activity.agent_id !== streamingEvent.agent_id) {
+                log.warn(
+                    `activity_created for activity ${activity.id} owned by agent ${activity.agent_id} was attributed to agent ${streamingEvent.agent_id}; ignoring it`,
+                )
+                return current
+            }
             if (current.has(activity.id)) {
                 log.warn(`activity_created for existing activity ${activity.id}; replacing it`)
             }
@@ -40,6 +46,12 @@ export function applyStreamingEvent(
 
         case "activity_updated": {
             const { activity } = streamingEvent
+            if (activity.agent_id !== streamingEvent.agent_id) {
+                log.warn(
+                    `activity_updated for activity ${activity.id} owned by agent ${activity.agent_id} was attributed to agent ${streamingEvent.agent_id}; ignoring it`,
+                )
+                return current
+            }
             if (!current.has(activity.id)) {
                 log.warn(`activity_updated for unknown activity ${activity.id}; inserting it`)
             }
@@ -50,6 +62,12 @@ export function applyStreamingEvent(
             const existing = current.get(streamingEvent.activity_id)
             if (existing === undefined) {
                 log.warn(`activity_delta for unknown activity ${streamingEvent.activity_id}; ignoring it`)
+                return current
+            }
+            if (existing.agent_id !== streamingEvent.agent_id) {
+                log.warn(
+                    `activity_delta for activity ${existing.id} owned by agent ${existing.agent_id} was attributed to agent ${streamingEvent.agent_id}; ignoring it`,
+                )
                 return current
             }
             return setActivity(current, applyDelta(existing, streamingEvent.delta, log))

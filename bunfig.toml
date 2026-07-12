@@ -1,4 +1,4 @@
 [install]
 # Dependency cooldown: refuse to resolve any package version that has been on the registry for less than this many seconds.
-minimumReleaseAge = 432000 # 5 days
+minimumReleaseAge = 259200 # 3 days
 minimumReleaseAgeExcludes = []

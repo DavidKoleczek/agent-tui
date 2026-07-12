@@ -106,12 +106,12 @@ export function App({ server, onBeforeExit }: AppProps) {
                 }),
                 client.subscribeActivities((event) => {
                     // Track the latest phase for the status line; agent_running is a sentinel that clears the status.
-                    if (event.type === "status") {
+                    if (event.type === "status" && event.agent_id === "main") {
                         setStatus(event.status_id === "agent_running" ? null : event.status_id)
                         // agent_running is emitted from the worker's run loop, so the session database now exists.
                         if (event.status_id === "agent_running") setDbReady(true)
                     }
-                    if (event.type === "session_config_changed") {
+                    if (event.type === "session_config_changed" && event.agent_id === "main") {
                         applyConfirmedRef.current(event.config_key, event.new_value)
                     }
                     store.applyStreamingEvent(event)
@@ -199,8 +199,14 @@ export function App({ server, onBeforeExit }: AppProps) {
             // Optimistically apply the decision so the card leaves the list instantly, but only once the send
             // succeeds: a closed socket means the server will never process it, so the card must stay pending.
             // The server's echoed activity update reconciles the authoritative state and result.
-            const sent = agentWSClientRef.current?.sendPermissionChange(id, permission) ?? false
-            if (sent) store.setTaskPermission(id, permission)
+            const activity = store.getSnapshot().get(id)
+            if (activity === undefined || activity.type !== "task") {
+                logRef.current(`permission change for unknown task activity ${id}; ignoring it`)
+                return
+            }
+            const sent =
+                agentWSClientRef.current?.sendPermissionChange(activity.agent_id, activity.id, permission) ?? false
+            if (sent) store.setTaskPermission(activity.agent_id, activity.id, permission)
         },
         [store],
     )
@@ -246,11 +252,12 @@ export function App({ server, onBeforeExit }: AppProps) {
 function buildResumeError(err: unknown): ActivityCreatedEvent {
     const activity: ErrorActivity = {
         id: crypto.randomUUID(),
+        agent_id: "main",
         type: "error",
         state: "error",
         timestamp: nowIso(),
         error_type: "resume_failed",
         detail: err instanceof Error ? err.message : String(err),
     }
-    return { type: "activity_created", activity }
+    return { type: "activity_created", agent_id: "main", activity }
 }

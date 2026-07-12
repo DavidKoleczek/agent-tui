@@ -17,6 +17,7 @@ export interface UserMessageEvent {
 
 export interface PermissionChangeEvent {
     type: "permission_change"
+    agent_id: string
     id: string
     permission: TaskPermission
 }
@@ -45,6 +46,7 @@ export type ClientEvent = UserMessageEvent | PermissionChangeEvent | CancelEvent
 
 export interface ActivityBase {
     id: string
+    agent_id: string
     state: ActivityState
     timestamp: IsoTimestamp
 }
@@ -70,6 +72,7 @@ export interface TaskActivity extends ActivityBase {
     permission: TaskPermission
     arguments: Record<string, unknown> | null
     result: string | null
+    sub_agent_id: string | null
 }
 
 export interface ErrorActivity extends ActivityBase {
@@ -89,6 +92,7 @@ export interface SessionActivityRecord {
     type: string
     state: ActivityState
     activity: SessionActivity
+    agent_id: string
 }
 
 // endregion
@@ -108,6 +112,10 @@ export interface ActivityDelta {
     permission?: TaskPermission | null
 }
 
+export interface StreamingEventBase {
+    agent_id: string
+}
+
 export type StatusId =
     | "agent_starting"
     | "agent_ready"
@@ -123,31 +131,31 @@ export type StatusId =
     | "starting_new_turn"
 
 // Reports the agent's current lifecycle phase. The `status_id` field identifies the phase.
-export interface StatusEvent {
+export interface StatusEvent extends StreamingEventBase {
     type: "status"
     status_id: StatusId
 }
 
-export interface ActivityCreatedEvent {
+export interface ActivityCreatedEvent extends StreamingEventBase {
     type: "activity_created"
     activity: SessionActivity
 }
 
 // Patches an existing activity. Intended for streaming efficiency, so only changed fields are present.
-export interface ActivityDeltaEvent {
+export interface ActivityDeltaEvent extends StreamingEventBase {
     type: "activity_delta"
     activity_id: string
     delta: ActivityDelta
 }
 
 // Carries the complete, finalized activity, replacing any previously created or patched copy.
-export interface ActivityUpdatedEvent {
+export interface ActivityUpdatedEvent extends StreamingEventBase {
     type: "activity_updated"
     activity: SessionActivity
 }
 
 // Confirms that a session config change requested via `SessionConfigChangeEvent` has been applied.
-export interface SessionConfigChangedEvent {
+export interface SessionConfigChangedEvent extends StreamingEventBase {
     type: "session_config_changed"
     config_key: string
     new_value: string
