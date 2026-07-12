@@ -97,7 +97,7 @@ export function ControlTower({
 
     const handleResume = (sessionPath: string): void => {
         onResume(sessionPath)
-        setMode("browse")
+        activateTab(CONTROL_INDEX)
     }
 
     const cancelResume = (): void => {
