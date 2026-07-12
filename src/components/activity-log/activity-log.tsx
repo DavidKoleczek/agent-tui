@@ -11,32 +11,49 @@ import { TaskActivity } from "./task-activity"
 import { ExpandedTaskView } from "./task-activity/expanded-task-view"
 import { UserActivity } from "./user-activity"
 import { ErrorActivity } from "./error-activity"
+import { useAgentScrollPosition } from "./use-agent-scroll-position"
 
 interface ActivityLogProps {
+    agentId: string
     activities: ReadonlyMap<string, SessionActivity>
+    scrollResetKey: number
     // Id of the task shown in the expanded overlay, or null when closed.
     expandedTaskId: string | null
-    // Opens or closes (null) the expanded task overlay.
-    onExpandTask: (id: string | null) => void
+    onOpenTask: (id: string) => void
+    onCloseTask: () => void
+    backEnabled: boolean
+    onBack: () => void
     // Sends the user's accept/deny decision for a tool from inside the expanded overlay.
     onPermissionChange: (id: string, permission: TaskPermission) => void
 }
 
-export function ActivityLog({ activities, expandedTaskId, onExpandTask, onPermissionChange }: ActivityLogProps) {
+export function ActivityLog({
+    agentId,
+    activities,
+    scrollResetKey,
+    expandedTaskId,
+    onOpenTask,
+    onCloseTask,
+    backEnabled,
+    onBack,
+    onPermissionChange,
+}: ActivityLogProps) {
     const scrollRef = useRef<ScrollBoxRenderable | null>(null)
     const scrollAcceleration = useMemo(() => new CustomSpeedScroll(DEFAULT_SCROLL_SPEED), [])
+    useAgentScrollPosition(scrollRef, agentId, scrollResetKey)
+
+    // The overlay only applies to task activities; a missing or non-task id resolves to undefined and auto-closes it.
+    const expanded = expandedTaskId !== null ? activities.get(expandedTaskId) : undefined
+    const expandedTask = expanded?.type === "task" ? expanded : undefined
 
     useBindings(
         () =>
             activityLogBindings({
                 scrollByViewport: (direction) => scrollRef.current?.scrollBy(direction, "viewport"),
+                onBack: backEnabled && expandedTask === undefined ? onBack : undefined,
             }),
-        [],
+        [backEnabled, expandedTask, onBack],
     )
-
-    // The overlay only applies to task activities; a missing or non-task id resolves to undefined and auto-closes it.
-    const expanded = expandedTaskId !== null ? activities.get(expandedTaskId) : undefined
-    const expandedTask = expanded?.type === "task" ? expanded : undefined
 
     return (
         <box flexGrow={1} flexShrink={1} position="relative">
@@ -83,7 +100,7 @@ export function ActivityLog({ activities, expandedTaskId, onExpandTask, onPermis
                                     taskResult={activity.result ?? ""}
                                     state={activity.state}
                                     permission={activity.permission}
-                                    onExpand={() => onExpandTask(activity.id)}
+                                    onOpen={() => onOpenTask(activity.id)}
                                 />
                             )
                         case "assistant":
@@ -114,7 +131,7 @@ export function ActivityLog({ activities, expandedTaskId, onExpandTask, onPermis
             {expandedTask !== undefined ? (
                 <ExpandedTaskView
                     activity={expandedTask}
-                    onClose={() => onExpandTask(null)}
+                    onClose={onCloseTask}
                     onPermissionChange={onPermissionChange}
                 />
             ) : null}

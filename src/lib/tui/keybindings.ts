@@ -2,6 +2,7 @@ import { type UseBindingsLayer } from "@opentui/keymap/react"
 
 export interface ActivityLogBindingDeps {
     scrollByViewport: (direction: -1 | 1) => void
+    onBack?: () => void
 }
 
 export function activityLogBindings(deps: ActivityLogBindingDeps): UseBindingsLayer {
@@ -19,6 +20,16 @@ export function activityLogBindings(deps: ActivityLogBindingDeps): UseBindingsLa
                     deps.scrollByViewport(1)
                 },
             },
+            ...(deps.onBack === undefined
+                ? []
+                : [
+                      {
+                          key: "escape",
+                          cmd() {
+                              deps.onBack?.()
+                          },
+                      },
+                  ]),
         ],
     }
 }

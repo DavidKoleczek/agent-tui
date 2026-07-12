@@ -1,5 +1,5 @@
 import { type TextareaRenderable } from "@opentui/core"
-import { type Ref, useImperativeHandle, useRef } from "react"
+import { type Ref, useImperativeHandle, useLayoutEffect, useRef } from "react"
 import { usePasteShortening } from "./use-paste-shortening"
 import { Colors } from "../../lib/constants"
 
@@ -11,8 +11,8 @@ export interface TextInputHandle {
 interface TextInputProps {
     placeholder?: string
     onSubmit: (value: string) => void
-    // Whether the agent connection is ready. While false, the input is greyed out and submissions are suppressed.
-    ready: boolean
+    // Whether submissions are enabled. While false, the input is greyed out and submissions are suppressed.
+    enabled: boolean
     // Whether the textarea holds keyboard focus. Released when another region (e.g. the control tower) is focused.
     focused: boolean
     ref?: Ref<TextInputHandle>
@@ -31,9 +31,19 @@ const KEY_BINDINGS = [
     { name: "return", meta: true, action: "newline" as const },
 ]
 
-export function TextInput({ placeholder, onSubmit, ready, focused, ref }: TextInputProps) {
+export function TextInput({ placeholder, onSubmit, enabled, focused, ref }: TextInputProps) {
     const textareaRef = useRef<TextareaRenderable | null>(null)
     const paste = usePasteShortening(textareaRef)
+
+    // Synchronize OpenTUI's imperative focus state before drawing.
+    // Disabled sub-agent views preserve the draft while preventing the textarea from receiving keyboard or mouse focus.
+    useLayoutEffect(() => {
+        const textarea = textareaRef.current
+        if (textarea === null) return
+        textarea.focusable = enabled
+        if (enabled && focused) textarea.focus()
+        else textarea.blur()
+    }, [enabled, focused])
 
     // Lets the parent drive Ctrl+C clear-then-exit without exposing the textarea ref or lifting the textarea's text into React state.
     useImperativeHandle(
@@ -56,7 +66,7 @@ export function TextInput({ placeholder, onSubmit, ready, focused, ref }: TextIn
         const textarea = textareaRef.current
         if (!textarea) return
         // Gate before paste.expand() so a suppressed submit does no work and preserves the draft and paste state.
-        if (!ready) return
+        if (!enabled) return
         const value = paste.expand()
         if (value.length === 0) return
         onSubmit(value)
@@ -71,7 +81,7 @@ export function TextInput({ placeholder, onSubmit, ready, focused, ref }: TextIn
             maxHeight={MAX_VISIBLE_ROWS + 2}
             border={["top", "bottom"]}
             borderStyle="rounded"
-            borderColor={ready ? undefined : Colors.mutedText}
+            borderColor={enabled ? undefined : Colors.mutedText}
             // Reserves space for the absolute prompt marker.
             paddingLeft={3}
             paddingRight={1}
@@ -79,12 +89,11 @@ export function TextInput({ placeholder, onSubmit, ready, focused, ref }: TextIn
             position="relative"
         >
             {/* Absolute keeps the marker out of flex sizing*/}
-            <text position="absolute" left={1} top={0} fg={ready ? undefined : Colors.mutedText}>
+            <text position="absolute" left={1} top={0} fg={enabled ? undefined : Colors.mutedText}>
                 ❯
             </text>
             <textarea
                 ref={textareaRef}
-                focused={focused}
                 placeholder={placeholder}
                 wrapMode="word"
                 keyBindings={KEY_BINDINGS}
@@ -93,10 +102,10 @@ export function TextInput({ placeholder, onSubmit, ready, focused, ref }: TextIn
                 width="100%"
                 maxHeight={MAX_VISIBLE_ROWS}
                 // Hold the cursor steady while launching; let it resume blinking once the connection is ready.
-                cursorStyle={{ style: "block", blinking: ready }}
-                textColor={ready ? undefined : Colors.mutedText}
-                focusedTextColor={ready ? undefined : Colors.mutedText}
-                placeholderColor={ready ? undefined : Colors.mutedText}
+                cursorStyle={{ style: "block", blinking: enabled }}
+                textColor={enabled ? undefined : Colors.mutedText}
+                focusedTextColor={enabled ? undefined : Colors.mutedText}
+                placeholderColor={enabled ? undefined : Colors.mutedText}
             />
         </box>
     )

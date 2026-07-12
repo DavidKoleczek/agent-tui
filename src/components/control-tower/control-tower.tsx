@@ -21,8 +21,8 @@ export interface ControlTowerProps {
     pendingApprovals: readonly TaskActivity[]
     // Sends the user's accept/deny decision for a pending tool to the server.
     onPermissionChange: (id: string, permission: TaskPermission) => void
-    // Opens a tool's expanded view from its approval card in the Control tab.
-    onExpandTask: (id: string) => void
+    // Opens the owning agent view for a task selected from the Control tab.
+    onOpenTask: (id: string) => void
     // Asks the app to move keyboard focus into the tower (used by mouse interactions).
     onEnterTower: () => void
     // Asks the app to move keyboard focus back to the chat.
@@ -59,7 +59,7 @@ export function ControlTower({
     onChangeConfig,
     pendingApprovals,
     onPermissionChange,
-    onExpandTask,
+    onOpenTask,
     onEnterTower,
     onExitToChat,
     onResume,
@@ -292,7 +292,7 @@ export function ControlTower({
                     }}
                     pendingApprovals={pendingApprovals}
                     onPermissionChange={onPermissionChange}
-                    onExpandTask={onExpandTask}
+                    onOpenTask={onOpenTask}
                 />
             )}
         </box>

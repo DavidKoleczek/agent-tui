@@ -14,8 +14,8 @@ interface ControlPanelProps {
     // Tool calls awaiting the user's approval, shown below the config rows.
     pendingApprovals: readonly TaskActivity[]
     onPermissionChange: (id: string, permission: TaskPermission) => void
-    // Opens a tool's expanded view from its approval card.
-    onExpandTask: (id: string) => void
+    // Opens the owning agent view for a task selected from an approval card.
+    onOpenTask: (id: string) => void
 }
 
 export function ControlPanel({
@@ -24,7 +24,7 @@ export function ControlPanel({
     onActivateValue,
     pendingApprovals,
     onPermissionChange,
-    onExpandTask,
+    onOpenTask,
 }: ControlPanelProps) {
     const scrollAcceleration = useMemo(() => new CustomSpeedScroll(DEFAULT_SCROLL_SPEED), [])
 
@@ -63,7 +63,7 @@ export function ControlPanel({
                 <PendingApprovals
                     tasks={pendingApprovals}
                     onPermissionChange={onPermissionChange}
-                    onExpandTask={onExpandTask}
+                    onOpenTask={onOpenTask}
                 />
             ) : null}
         </scrollbox>

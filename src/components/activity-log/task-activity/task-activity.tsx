@@ -14,7 +14,7 @@ interface TaskActivityProps {
     state: ActivityState
     permission: TaskPermission
     index: number
-    onExpand?: () => void
+    onOpen?: () => void
 }
 
 const STATUS_DOT = "\u25CF"
@@ -26,7 +26,7 @@ export function TaskActivity({
     state,
     permission,
     index,
-    onExpand,
+    onOpen,
 }: TaskActivityProps) {
     const dot = resolveDotStyle(state, permission)
     const dotColor = usePulse(dot.color, dot.pulse)
@@ -54,7 +54,7 @@ export function TaskActivity({
             // Open on release, not press, and skip opening when the release ends a text selection so the user can
             // drag to select and copy the row's text instead of expanding it.
             onMouseUp={() => {
-                if ((renderer.getSelection()?.getSelectedText() ?? "") === "") onExpand?.()
+                if ((renderer.getSelection()?.getSelectedText() ?? "") === "") onOpen?.()
             }}
         >
             <text content={header} />

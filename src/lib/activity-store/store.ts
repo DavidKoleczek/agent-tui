@@ -3,6 +3,7 @@ The webserver streams StreamingEvents which will be converted into SessionActivi
 */
 
 import {
+    MAIN_AGENT_ID,
     type SessionActivity,
     type UserActivity,
     type TaskActivity,
@@ -56,7 +57,7 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
         pushUserMessage(content) {
             const userActivity: UserActivity = {
                 id: crypto.randomUUID(),
-                agent_id: "main",
+                agent_id: MAIN_AGENT_ID,
                 type: "user",
                 state: "complete",
                 timestamp: nowIso(),

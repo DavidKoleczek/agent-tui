@@ -5,6 +5,7 @@ import { writeSystemClipboard } from "../lib/clipboard"
 
 export interface UseCtrlCExitOptions {
     isEmpty: () => boolean
+    // Handles the draft-clearing step. Callers may preserve a disabled draft while still consuming the press.
     clear: () => void
     // Whether the agent is actively working. When true, Ctrl-C on an empty input cancels before it quits.
     isWorking: () => boolean
@@ -20,10 +21,10 @@ const DEFAULT_WINDOW_MS = 1000
 
 // State-aware Ctrl-C.
 // A press while text is selected copies the selection to the clipboard and clears it, matching a terminal.
-// Otherwise, a press on a non-empty input clears it and resets the sequence.
+// Otherwise, a press on a non-empty input delegates the draft-clearing step and resets the sequence.
 // On an empty input the behavior depends on whether the agent is working:
 // - idle arms once then quits
-// - working arms once, cancels onthe second press, then quits on the third.
+// - working arms once, cancels on the second press, then quits on the third.
 //
 // A rolling window resets the counter (and clears the hint) if the next press does not arrive in time.
 // Held Ctrl-C (key repeat) is ignored so it cannot self-advance.
@@ -96,7 +97,7 @@ export function useCtrlCExit({
             return
         }
 
-        // A press with text present always clears the input and resets the sequence, in both modes.
+        // A press with text present consumes the draft-clearing step and resets the sequence.
         if (!isEmpty()) {
             clear()
             clearTimer()

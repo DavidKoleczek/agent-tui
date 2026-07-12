@@ -4,6 +4,8 @@ import { type IsoTimestamp } from "./branded-types"
 // Field names and `type` discriminants match the server's Pydantic models exactly so JSON round-trips without a translation layer.
 // See agent-server/docs/PROTOCOL.md and agent-server/src/agent_server/schemas/activity.py.
 
+export const MAIN_AGENT_ID = "main"
+
 export type ActivityState = "in_progress" | "complete" | "error" | "cancelled"
 export type TaskPermission = "accepted" | "denied" | "pending"
 
