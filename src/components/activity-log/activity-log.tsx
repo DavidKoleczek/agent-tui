@@ -82,14 +82,7 @@ export function ActivityLog({
                         case "user":
                             return <UserActivity key={activity.id} index={index} content={activity.content} />
                         case "reasoning":
-                            return (
-                                <ReasoningActivity
-                                    key={activity.id}
-                                    index={index}
-                                    content={activity.content}
-                                    state={activity.state}
-                                />
-                            )
+                            return <ReasoningActivity key={activity.id} index={index} content={activity.content} />
                         case "task":
                             return (
                                 <TaskActivity
@@ -104,14 +97,7 @@ export function ActivityLog({
                                 />
                             )
                         case "assistant":
-                            return (
-                                <AssistantActivity
-                                    key={activity.id}
-                                    index={index}
-                                    content={activity.content}
-                                    state={activity.state}
-                                />
-                            )
+                            return <AssistantActivity key={activity.id} index={index} content={activity.content} />
                         case "error":
                             return (
                                 <ErrorActivity

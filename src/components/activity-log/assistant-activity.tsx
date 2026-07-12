@@ -1,17 +1,24 @@
 import { memo } from "react"
 import { getMarkdownSyntaxStyle } from "../../lib/tui"
-import { type ActivityState } from "../../schemas/activities"
 
 interface AssistantActivityProps {
     content: string
-    state: ActivityState
     index: number
 }
 
-function AssistantActivityImpl({ content, state, index }: AssistantActivityProps) {
+const TABLE_OPTIONS = { style: "grid" } as const
+
+function AssistantActivityImpl({ content, index }: AssistantActivityProps) {
+    // Top-level blocks update in place without flashing raw markdown. Keeping streaming enabled avoids a final rebuild.
     return (
         <box paddingLeft={2} marginTop={index === 0 ? 0 : 1} flexShrink={0}>
-            <markdown content={content} syntaxStyle={getMarkdownSyntaxStyle()} streaming={state === "in_progress"} />
+            <markdown
+                content={content}
+                syntaxStyle={getMarkdownSyntaxStyle()}
+                streaming
+                internalBlockMode="top-level"
+                tableOptions={TABLE_OPTIONS}
+            />
         </box>
     )
 }

@@ -1,6 +1,6 @@
 import { fg, t } from "@opentui/core"
 import { useRenderer } from "@opentui/react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Colors } from "../../../lib/constants"
 import { type ActivityState, type TaskPermission } from "../../../schemas/activities"
 import { formatArguments, formatResultLines, formatTaskName } from "../../../lib/tui"
@@ -33,14 +33,23 @@ export function TaskActivity({
     const [hovered, setHovered] = useState(false)
     const renderer = useRenderer()
 
-    const displayName = formatTaskName(taskName)
-    const argsText = Object.keys(taskArguments).length > 0 ? formatArguments(taskArguments) : ""
-    const resultLines = formatResultLines(taskResult)
+    const displayName = useMemo(() => formatTaskName(taskName), [taskName])
+    const argsText = useMemo(
+        () =>
+            Object.keys(taskArguments).length > 0
+                ? formatArguments(taskArguments, { streaming: state === "in_progress" })
+                : "",
+        [taskArguments, state],
+    )
+    const resultLines = useMemo(() => formatResultLines(taskResult), [taskResult])
 
-    const header =
-        argsText.length > 0
-            ? t`${fg(dotColor)(STATUS_DOT)} ${displayName} ${fg(Colors.mutedText)(`(${argsText})`)}`
-            : t`${fg(dotColor)(STATUS_DOT)} ${displayName}`
+    const header = useMemo(
+        () =>
+            argsText.length > 0
+                ? t`${fg(dotColor)(STATUS_DOT)} ${displayName} ${fg(Colors.mutedText)(`(${argsText})`)}`
+                : t`${fg(dotColor)(STATUS_DOT)} ${displayName}`,
+        [argsText, displayName, dotColor],
+    )
 
     return (
         <box
@@ -57,7 +66,7 @@ export function TaskActivity({
                 if ((renderer.getSelection()?.getSelectedText() ?? "") === "") onOpen?.()
             }}
         >
-            <text content={header} />
+            <text content={header} wrapMode="none" truncate />
             {resultLines.length > 0 && (
                 <box flexDirection="column" marginTop={1}>
                     {resultLines.map((line, lineIndex) => (

@@ -4,10 +4,6 @@ import { SyntaxStyle, type StyleDefinitionInput } from "@opentui/core"
 // All callers live inside React components, which only mount once the renderer is up; lazy-init keeps this safe even
 // if a consumer is imported eagerly at module-load time.
 let cached: SyntaxStyle | undefined
-let cachedReasoning: SyntaxStyle | undefined
-
-const REASONING_FG = "#888888"
-const REASONING_CONCEAL_FG = "#444444"
 
 // Markdown chunker + tree-sitter markdown grammar emit `markup.*` scopes. `SyntaxStyle.getStyleId` only falls back
 // from `a.b.c` to the top-level `a`, so subscopes like `markup.list.checked` or `markup.link.bracket.close` need
@@ -99,29 +95,4 @@ export function getMarkdownSyntaxStyle(): SyntaxStyle {
         }
     }
     return cached
-}
-
-// Reasoning content renders in a single muted grey.
-// We strip token-specific colors so headings, code, links, etc. don't break the visual treatment,
-// while keeping attributes (bold, italic, underline) so the markdown structure is still legible at a glance.
-function toGreyStyles(styles: Record<string, StyleDefinitionInput>): Record<string, StyleDefinitionInput> {
-    const result: Record<string, StyleDefinitionInput> = {}
-    for (const [scope, style] of Object.entries(styles)) {
-        const fg = scope === "conceal" ? REASONING_CONCEAL_FG : REASONING_FG
-        result[scope] = { ...style, fg }
-    }
-    return result
-}
-
-export function getReasoningMarkdownSyntaxStyle(): SyntaxStyle {
-    if (!cachedReasoning) {
-        cachedReasoning = SyntaxStyle.create()
-        for (const [scope, style] of Object.entries(toGreyStyles(MARKDOWN_STYLES))) {
-            cachedReasoning.registerStyle(scope, style)
-        }
-        for (const [scope, style] of Object.entries(toGreyStyles(CODE_STYLES))) {
-            cachedReasoning.registerStyle(scope, style)
-        }
-    }
-    return cachedReasoning
 }
