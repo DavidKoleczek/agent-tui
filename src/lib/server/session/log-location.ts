@@ -6,14 +6,14 @@ import { platform } from "../lifecycle/platform"
 
 // Flattens an absolute working directory into a single filesystem-safe folder name,
 // so every log produced for that directory is collected in one place.
-// Ex: "C:\Repos\Prod\dev-tools" becomes "repos-prod-dev-tools".
-// A Windows drive designator ("C:") and empty segments are dropped;
-// each remaining segment is lowercased with any run of non-alphanumeric characters collapsed to a single hyphen.
+// Ex: "C:\Repos\Prod\dev-tools" becomes "c-repos-prod-dev-tools".
+// Empty segments are dropped; each remaining segment is lowercased with any run of non-alphanumeric characters
+// collapsed to a single hyphen.
 // Falls back to "root" for a path with no usable segments.
 export function workingDirSlug(cwd: string): string {
     const segments = cwd
         .split(/[\\/]+/)
-        .filter((segment) => segment.length > 0 && !/^[a-zA-Z]:$/.test(segment))
+        .filter((segment) => segment.length > 0)
         .map((segment) =>
             segment
                 .toLowerCase()
