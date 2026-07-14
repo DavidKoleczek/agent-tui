@@ -20,6 +20,45 @@ type Phase =
     | { kind: "installed"; version: string }
     | { kind: "error"; message: string }
 
+interface UpdateButtonProps {
+    focused: boolean
+    onPress: () => void
+}
+
+function UpdateButton({ focused, onPress }: UpdateButtonProps) {
+    const [hovered, setHovered] = useState(false)
+    const highlighted = focused || hovered
+    const onPressRef = useRef(onPress)
+    onPressRef.current = onPress
+
+    useBindings(
+        (): UseBindingsLayer =>
+            focused
+                ? {
+                      bindings: [{ key: "return", cmd: () => onPressRef.current() }],
+                  }
+                : { bindings: [] },
+        [focused],
+    )
+
+    return (
+        <box
+            backgroundColor={highlighted ? Colors.accent : undefined}
+            paddingLeft={1}
+            paddingRight={1}
+            flexShrink={0}
+            onMouseOver={() => setHovered(true)}
+            onMouseOut={() => setHovered(false)}
+            onMouseDown={(event) => {
+                event.stopPropagation()
+                onPress()
+            }}
+        >
+            <text fg={highlighted ? Colors.onAccentText : Colors.mutedText}>Update</text>
+        </box>
+    )
+}
+
 function errorMessage(err: unknown): string {
     return err instanceof Error ? err.message : String(err)
 }
@@ -70,22 +109,9 @@ export function UpdatePanel({ active, onCancel, onExitTop }: UpdatePanelProps) {
         }
     }, [])
 
-    const onReturn = (): void => {
-        if (dev) return
-        const current = phaseRef.current
-        if (current.kind === "checking" || current.kind === "downloading" || current.kind === "installed") return
-        if (current.kind === "result" && current.check.status === "available") {
-            runApply(current.check)
-            return
-        }
-        runCheck()
-    }
-
-    // Latest handlers/phase for the bindings layer, so it registers once per active state.
-    const phaseRef = useRef(phase)
-    phaseRef.current = phase
-    const actionsRef = useRef({ onReturn, onCancel, onExitTop })
-    actionsRef.current = { onReturn, onCancel, onExitTop }
+    // Latest handlers for the bindings layer, so it registers once per active state.
+    const actionsRef = useRef({ onCancel, onExitTop })
+    actionsRef.current = { onCancel, onExitTop }
 
     useBindings(
         (): UseBindingsLayer =>
@@ -94,7 +120,6 @@ export function UpdatePanel({ active, onCancel, onExitTop }: UpdatePanelProps) {
                       bindings: [
                           { key: "up", cmd: () => actionsRef.current.onExitTop() },
                           { key: "escape", cmd: () => actionsRef.current.onCancel() },
-                          { key: "return", cmd: () => actionsRef.current.onReturn() },
                       ],
                   }
                 : { bindings: [] },
@@ -106,6 +131,11 @@ export function UpdatePanel({ active, onCancel, onExitTop }: UpdatePanelProps) {
             <text fg={Colors.mutedText}>{`Current version  ${appVersion}`}</text>
             <box height={1} flexShrink={0} />
             {renderBody(dev, phase)}
+            {!dev && phase.kind === "result" && phase.check.status === "available" ? (
+                <box flexDirection="row" flexShrink={0} marginTop={1}>
+                    <UpdateButton focused={active} onPress={() => runApply(phase.check)} />
+                </box>
+            ) : null}
         </box>
     )
 }
