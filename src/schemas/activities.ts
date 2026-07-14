@@ -127,6 +127,7 @@ export type StatusId =
     | "agent_stopped"
     | "agent_running"
     | "agent_turn_ended"
+    | "processing_message"
     | "waiting_for_llm_response"
     | "processing_llm_response"
     | "executing_tool"

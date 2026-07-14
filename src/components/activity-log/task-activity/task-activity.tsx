@@ -56,7 +56,7 @@ export function TaskActivity({
             flexDirection="column"
             flexShrink={0}
             marginTop={index === 0 ? 0 : 1}
-            paddingLeft={2}
+            paddingLeft={1}
             backgroundColor={hovered ? Colors.rowHover : undefined}
             onMouseOver={() => setHovered(true)}
             onMouseOut={() => setHovered(false)}

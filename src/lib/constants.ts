@@ -25,7 +25,7 @@ export const Colors = {
     // Primary accent (brand blue). Used for status text and the focused/selected highlight background.
     accent: "#2EA6E0",
     // Accent blue with alpha, used as a translucent highlight background (e.g. user message bubbles).
-    accentTranslucent: "#2da4f481",
+    accentTranslucent: "#2c658b77",
     // Text drawn on top of an `accent` background, where dark-on-accent gives the most contrast.
     onAccentText: "#000000",
     // Bright foreground for the active (but unfocused) tab label.

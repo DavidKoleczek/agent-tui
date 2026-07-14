@@ -26,6 +26,7 @@ const STATUS_LABELS: Record<Exclude<StatusId, HiddenStatusId>, string> = {
     agent_cancelled: "Agent cancelled",
     agent_stopping: "Agent stopping",
     agent_stopped: "Agent successfully finished",
+    processing_message: "Processing message",
     waiting_for_llm_response: "Waiting for LLM response",
     processing_llm_response: "Processing LLM response",
     executing_tool: "Executing tool",

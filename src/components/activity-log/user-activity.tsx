@@ -9,14 +9,14 @@ export function UserActivity({ content, index }: UserActivityProps) {
     return (
         <box
             backgroundColor={Colors.accentTranslucent}
-            paddingTop={1}
-            paddingBottom={1}
-            paddingLeft={2}
+            paddingTop={0}
+            paddingBottom={0}
+            paddingLeft={1}
             paddingRight={2}
             flexShrink={0}
             marginTop={index === 0 ? 0 : 1}
         >
-            <text>{content}</text>
+            <text>❯ {content}</text>
         </box>
     )
 }

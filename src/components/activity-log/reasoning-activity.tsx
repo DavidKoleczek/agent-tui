@@ -9,7 +9,7 @@ interface ReasoningActivityProps {
 
 function ReasoningActivityImpl({ content, index }: ReasoningActivityProps) {
     return (
-        <box paddingLeft={2} marginTop={index === 0 ? 0 : 1} flexShrink={0}>
+        <box paddingLeft={1} marginTop={index === 0 ? 0 : 1} flexShrink={0}>
             <text content={content} fg={Colors.mutedText} />
         </box>
     )

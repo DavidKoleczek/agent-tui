@@ -12,7 +12,7 @@ export function ErrorActivity({ error_type, detail, index }: ErrorActivityProps)
             backgroundColor={Colors.errorBackground}
             paddingTop={1}
             paddingBottom={1}
-            paddingLeft={2}
+            paddingLeft={1}
             paddingRight={2}
             flexShrink={0}
             marginTop={index === 0 ? 0 : 1}

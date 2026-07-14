@@ -20,15 +20,19 @@ interface TextInputProps {
 
 const MAX_VISIBLE_ROWS = 10
 
-// Plain Enter submits user message.
+// Plain Enter and keypad Enter submit user messages.
 // Shift+Enter, Ctrl+Enter, and Alt+Enter insert a newline when the terminal sends a distinct sequence
 // Without that, terminals collapse every Enter variant to "\r" and only plain submit applies.
 const KEY_BINDINGS = [
     { name: "return", action: "submit" as const },
+    { name: "kpenter", action: "submit" as const },
     { name: "linefeed", action: "submit" as const },
     { name: "return", shift: true, action: "newline" as const },
+    { name: "kpenter", shift: true, action: "newline" as const },
     { name: "return", ctrl: true, action: "newline" as const },
+    { name: "kpenter", ctrl: true, action: "newline" as const },
     { name: "return", meta: true, action: "newline" as const },
+    { name: "kpenter", meta: true, action: "newline" as const },
 ]
 
 export function TextInput({ placeholder, onSubmit, enabled, focused, ref }: TextInputProps) {
