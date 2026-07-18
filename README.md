@@ -2,13 +2,12 @@
     agent-tui
 </h1>
 <p align="center">
-    <p align="center">Terminal user interface for AI agents built on <a href="https://github.com/DavidKoleczek/agent-core">agent-core</a>.</p>
+    <p align="center">An AI agent TUI named Floppy built using <a href="https://github.com/DavidKoleczek/agent-server">agent-server</a>, <a href="https://github.com/DavidKoleczek/interop-router">interop-router</a>, and <a href="https://github.com/anomalyco/opentui/">OpenTUI</a></p>
 </p>
 <p align="center">
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
-An AI agent TUI built using OpenTUI.
 
 > [!NOTE]
 > This library is in early development and subject to change.
@@ -30,7 +29,7 @@ Linux:
 curl -fsSL https://github.com/DavidKoleczek/agent-tui/releases/latest/download/install.sh | bash
 ```
 
-Launch with `agent`!
+Launch with `floppy`!
 
 ### Shift+Enter for Newlines on Windows Terminal
 
@@ -71,7 +70,7 @@ Save and restart Windows Terminal or open a new tab.
 Quit any running instances, then run:
 
 ```bash
-agent uninstall --yes
+floppy uninstall --yes
 ```
 
 ## Development

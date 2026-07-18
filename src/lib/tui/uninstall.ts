@@ -1,4 +1,4 @@
-// `agent uninstall`: tears down the managed runtime so a later install is clean.
+// `floppy uninstall`: tears down the managed runtime so a later install is clean.
 // A pre-boot CLI command that boots neither the TUI nor agent-server, so it holds no lock on the managed root itself.
 // It refuses to run while any process still has files open under the managed root,
 // then removes the managed root, the PATH entry the installer added, and the installed binary.
@@ -108,7 +108,7 @@ function findLinuxProcesses(): ManagedProcess[] {
 
 // region Install location and PATH
 
-// Where the installer places the `agent` binary (install.ps1 / install.sh). The uninstall reverses exactly this.
+// Where the installer places the `floppy` binary (install.ps1 / install.sh). The uninstall reverses exactly this.
 function installDir(): string {
     if (process.platform === "win32") {
         const base = process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local")
@@ -273,10 +273,10 @@ async function confirm(message: string): Promise<boolean> {
 
 // region Public flow
 
-const USAGE = `Usage: agent uninstall [--yes]
+const USAGE = `Usage: floppy uninstall [--yes]
 
-Removes the managed runtime, the installed agent binary, and the PATH entry the installer added. Refuses to run
-while any agent instance is still running. Conversation history in per-directory .agents folders is left untouched.
+Removes the managed runtime, the installed floppy binary, and the PATH entry the installer added. Refuses to run
+while any floppy instance is still running. Conversation history in per-directory .agents folders is left untouched.
 
 Options:
   -y, --yes    Skip the confirmation prompt.
@@ -293,13 +293,13 @@ export async function runUninstall(args: string[]): Promise<number> {
             process.stdout.write(USAGE)
             return 0
         } else {
-            process.stderr.write(`agent uninstall: unrecognized option '${arg}'\n\n${USAGE}`)
+            process.stderr.write(`floppy uninstall: unrecognized option '${arg}'\n\n${USAGE}`)
             return 2
         }
     }
 
     // A dev build (run from source) was never installed, so there is nothing to reverse;
-    // refuse rather than act on the real managed root. process.execPath here is the Bun binary, not an installed agent.
+    // refuse rather than act on the real managed root. process.execPath here is the Bun binary, not an installed floppy.
     if (isDevBuild()) {
         process.stderr.write(
             `uninstall is unavailable in dev builds (${appVersion}).\n` +
@@ -311,11 +311,11 @@ export async function runUninstall(args: string[]): Promise<number> {
     // Refuse while instances run, before touching anything, so the teardown stays all-or-nothing.
     const running = await findManagedProcesses()
     if (running.length > 0) {
-        process.stderr.write("Cannot uninstall while agent instances are running:\n")
+        process.stderr.write("Cannot uninstall while floppy instances are running:\n")
         for (const proc of running) {
             process.stderr.write(`  pid ${proc.pid}  ${proc.exePath}\n`)
         }
-        process.stderr.write("Quit those instances, then re-run `agent uninstall`.\n")
+        process.stderr.write("Quit those instances, then re-run `floppy uninstall`.\n")
         return 1
     }
 
@@ -323,7 +323,7 @@ export async function runUninstall(args: string[]): Promise<number> {
 
     if (!yes) {
         process.stdout.write(
-            `This removes the agent runtime at ${MANAGED_ROOT}\nand the agent binary at ${dir}.\n` +
+            `This removes the floppy runtime at ${MANAGED_ROOT}\nand the floppy binary at ${dir}.\n` +
                 "Conversation history in per-directory .agents folders is preserved.\n",
         )
         if (!(await confirm("Proceed? [y/N] "))) {
@@ -338,7 +338,7 @@ export async function runUninstall(args: string[]): Promise<number> {
         removeManagedRoot()
     } catch (err) {
         process.stderr.write(`Failed to remove ${MANAGED_ROOT}: ${(err as Error).message}\n`)
-        process.stderr.write("Nothing else was changed; re-run `agent uninstall` to retry.\n")
+        process.stderr.write("Nothing else was changed; re-run `floppy uninstall` to retry.\n")
         return 1
     }
 
@@ -353,7 +353,7 @@ export async function runUninstall(args: string[]): Promise<number> {
     }
 
     process.stdout.write(
-        "Uninstalled agent. Conversation history in per-directory .agents folders was left untouched.\n" +
+        "Uninstalled floppy. Conversation history in per-directory .agents folders was left untouched.\n" +
             "Open a new terminal for the PATH change to take effect.\n",
     )
     return 0

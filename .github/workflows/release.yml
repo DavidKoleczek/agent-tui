@@ -30,8 +30,8 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   gh release upload "${{ github.event.release.tag_name }}" \
-                    dist/agent-linux-x64 \
-                    dist/agent-windows-x64.exe \
+                    dist/floppy-linux-x64 \
+                    dist/floppy-windows-x64.exe \
                     dist/latest.json \
                     install.sh \
                     install.ps1 \

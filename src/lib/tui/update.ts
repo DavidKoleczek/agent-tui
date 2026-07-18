@@ -144,7 +144,7 @@ async function downloadVerified(asset: Asset, installPath: string, signal?: Abor
         throw new Error(`update checksum mismatch (expected ${asset.sha256}, got ${sha256})`)
     }
 
-    const stagedPath = join(dirname(installPath), `.agent-update-${randomUUID()}`)
+    const stagedPath = join(dirname(installPath), `.floppy-update-${randomUUID()}`)
     try {
         await Bun.write(stagedPath, buffer)
     } catch (err) {

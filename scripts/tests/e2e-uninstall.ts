@@ -1,4 +1,4 @@
-// Local end-to-end test for `agent uninstall`.
+// Local end-to-end test for `floppy uninstall`.
 // Compiles a real host binary into a throwaway sandbox, seeds a fake managed runtime, and asserts the teardown that cannot run under `bun dev`.
 //
 // Everything is isolated under a temp directory via HOME / USERPROFILE / LOCALAPPDATA overrides, so the test never touches ~/.agents/tui, installed binary, or PATH.
@@ -29,7 +29,7 @@ function resolveHost(): Host {
         return {
             key,
             bunTarget: "bun-windows-x64",
-            installName: "agent.exe",
+            installName: "floppy.exe",
             sleeperSource: join(process.env.SystemRoot ?? "C:\\Windows", "System32", "PING.EXE"),
             sleeperArgs: () => ["-n", "60", "127.0.0.1"],
         }
@@ -38,7 +38,7 @@ function resolveHost(): Host {
         return {
             key,
             bunTarget: "bun-linux-x64",
-            installName: "agent",
+            installName: "floppy",
             sleeperSource: "/bin/sleep",
             sleeperArgs: () => ["60"],
         }
@@ -57,9 +57,9 @@ async function compile(version: string, bunTarget: string, outPath: string): Pro
         outPath,
         ENTRY,
     ]
-    process.stdout.write(`building agent@${version} -> ${outPath}\n`)
+    process.stdout.write(`building floppy@${version} -> ${outPath}\n`)
     const proc = Bun.spawn(["bun", ...args], { stdout: "inherit", stderr: "inherit" })
-    if ((await proc.exited) !== 0) throw new Error(`bun build failed for agent@${version}`)
+    if ((await proc.exited) !== 0) throw new Error(`bun build failed for floppy@${version}`)
 }
 
 function assert(condition: boolean, message: string): void {
@@ -148,7 +148,7 @@ async function main(): Promise<void> {
         await compile("9.9.9", host.bunTarget, installPath)
         seedManagedRoot(managedRoot)
 
-        const sleeperPath = join(managedRoot, "cache", host.installName === "agent.exe" ? "sleeper.exe" : "sleeper")
+        const sleeperPath = join(managedRoot, "cache", host.installName === "floppy.exe" ? "sleeper.exe" : "sleeper")
         cpSync(host.sleeperSource, sleeperPath)
         const sleeper = Bun.spawn([sleeperPath, ...host.sleeperArgs(sleeperPath)], {
             stdout: "ignore",

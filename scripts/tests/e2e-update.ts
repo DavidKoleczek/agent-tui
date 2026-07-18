@@ -29,10 +29,15 @@ function resolveHost(): Host {
     const os = process.platform === "win32" ? "windows" : process.platform
     const key = `${os}-${process.arch}`
     if (key === "windows-x64") {
-        return { key, bunTarget: "bun-windows-x64", installName: "agent.exe", assetName: "agent-windows-x64.exe" }
+        return {
+            key,
+            bunTarget: "bun-windows-x64",
+            installName: "floppy.exe",
+            assetName: "floppy-windows-x64.exe",
+        }
     }
     if (key === "linux-x64") {
-        return { key, bunTarget: "bun-linux-x64", installName: "agent", assetName: "agent-linux-x64" }
+        return { key, bunTarget: "bun-linux-x64", installName: "floppy", assetName: "floppy-linux-x64" }
     }
     throw new Error(`the e2e update test supports linux-x64 and windows-x64 only; this host is ${key}`)
 }
@@ -48,9 +53,9 @@ async function compile(version: string, bunTarget: string, outPath: string): Pro
         outPath,
         ENTRY,
     ]
-    process.stdout.write(`building agent@${version} -> ${outPath}\n`)
+    process.stdout.write(`building floppy@${version} -> ${outPath}\n`)
     const proc = Bun.spawn(["bun", ...args], { stdout: "inherit", stderr: "inherit" })
-    if ((await proc.exited) !== 0) throw new Error(`bun build failed for agent@${version}`)
+    if ((await proc.exited) !== 0) throw new Error(`bun build failed for floppy@${version}`)
 }
 
 async function main(): Promise<void> {
@@ -133,8 +138,8 @@ async function main(): Promise<void> {
 
     process.stdout.write(
         `\ne2e update server ready\n` +
-            `  old:  ${installPath}  (agent@${oldVersion})\n` +
-            `  new:   agent@${newVersion}  sha256=${sha256.slice(0, 12)}...  ${size} bytes\n` +
+            `  old:  ${installPath}  (floppy@${oldVersion})\n` +
+            `  new:   floppy@${newVersion}  sha256=${sha256.slice(0, 12)}...  ${size} bytes\n` +
             `  manifest:       ${manifestUrl}\n\n` +
             `In a NEW terminal, run the launcher below. It sets AGENT_TUI_MANIFEST_URL for you and starts\n` +
             `the old binary; then open the Control Tower Settings tab and pick "Check for updates":\n\n` +
@@ -146,7 +151,7 @@ async function main(): Promise<void> {
             `Expect:\n` +
             `  - the panel shows Current version ${oldVersion} and Update available ${newVersion}\n` +
             `  - confirming downloads, verifies sha256, and swaps; the panel then shows "Update installed,\n` +
-            `    restart agent to use ${newVersion}"\n` +
+            `    restart floppy to use ${newVersion}"\n` +
             `  - quit, then run the launcher again to restart: it now reports ${newVersion}\n` +
             oldImageNote +
             `\nLeave this server running while you test. Press Ctrl+C to stop.\n` +

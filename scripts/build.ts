@@ -1,4 +1,4 @@
-// Release build script: cross-compiles the standalone `agent` binary for Linux x64 and Windows x64,
+// Release build script: cross-compiles the standalone `floppy` binary for Linux x64 and Windows x64,
 // bakes in the app version, writes each binary plus a derived latest.json into dist/, and smoke-tests
 // the host-native binary's --version. The release workflow runs this; it is also runnable locally.
 //
@@ -36,8 +36,8 @@ interface Manifest {
     platforms: Record<Target["key"], Asset>
 }
 
-const LINUX: Target = { key: "linux-x64", bunTarget: "bun-linux-x64", filename: "agent-linux-x64" }
-const WINDOWS: Target = { key: "windows-x64", bunTarget: "bun-windows-x64", filename: "agent-windows-x64.exe" }
+const LINUX: Target = { key: "linux-x64", bunTarget: "bun-linux-x64", filename: "floppy-linux-x64" }
+const WINDOWS: Target = { key: "windows-x64", bunTarget: "bun-windows-x64", filename: "floppy-windows-x64.exe" }
 const TARGETS = [LINUX, WINDOWS]
 
 function stripLeadingV(value: string): string {
