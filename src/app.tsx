@@ -10,7 +10,13 @@ import {
 } from "./hooks"
 import { buildActivityIndex, createActivityStore, getAgentActivities, resolveAgentPath } from "./lib/activity-store"
 import { fetchSessionActivities, type AgentWSClient, type ServerHandle } from "./lib/server"
-import { MAIN_AGENT_ID, type ActivityCreatedEvent, type ErrorActivity, type TaskPermission } from "./schemas/activities"
+import {
+    MAIN_AGENT_ID,
+    type ActivityCreatedEvent,
+    type ErrorActivity,
+    type SessionActivity,
+    type TaskPermission,
+} from "./schemas/activities"
 import { nowIso } from "./schemas/branded-types"
 
 export interface AppProps {
@@ -34,6 +40,8 @@ export function App({ server, onBeforeExit }: AppProps) {
 
     // Agent connection and session state.
     const agentWSClientRef = useRef<AgentWSClient | null>(null)
+    // Invalidates asynchronous resume loads when a newer session switch starts.
+    const sessionSwitchIdRef = useRef(0)
     // Tears down the subscriptions on the currently wired client; replaced whenever we wire a new one.
     const teardownRef = useRef<() => void>(() => {})
     // Database path of the currently wired session.
@@ -117,38 +125,72 @@ export function App({ server, onBeforeExit }: AppProps) {
         })
         return () => {
             cancelled = true
+            sessionSwitchIdRef.current++
             logRef.current = () => {}
             teardownRef.current()
         }
     }, [server, wireClient])
 
-    const handleResumeSelect = useCallback(
-        (sessionPath: string) => {
-            // Hand focus back to chat so the user can immediately continue the conversation.
-            setRegion("chat")
-            const baseUrl = server.httpBaseUrl()
-            if (baseUrl === null) return
+    const activateSession = useCallback(
+        (client: AgentWSClient, seed: readonly SessionActivity[] | null) => {
             reset()
             setExpandedTaskId(null)
             clearAgentStatuses()
+            resetSessionConfig()
             setScrollResetKey((current) => current + 1)
+            if (seed === null) store.reset()
+            else store.seedActivities(seed)
+            wireClient(client)
+            // Hand focus back to chat so the user can immediately use the new active session.
+            setRegion("chat")
+        },
+        [store, wireClient, reset, clearAgentStatuses, resetSessionConfig],
+    )
+
+    const handleNewSession = useCallback(() => {
+        if (server.httpBaseUrl() === null) return
+
+        sessionSwitchIdRef.current++
+        // Ask the old worker tree to stop cleanly before createClient closes its socket as a fallback.
+        agentWSClientRef.current?.quit()
+        const client = server.createClient()
+        if (client !== null) activateSession(client, null)
+    }, [server, activateSession])
+
+    const handleResumeSelect = useCallback(
+        (sessionPath: string) => {
+            const baseUrl = server.httpBaseUrl()
+            if (baseUrl === null) return
+
+            const switchId = ++sessionSwitchIdRef.current
+            // The picker is done; return focus while the local resume request loads.
+            setRegion("chat")
             void (async () => {
+                let records
                 try {
-                    const records = await fetchSessionActivities({
+                    records = await fetchSessionActivities({
                         baseUrl,
                         workingDir: server.workingDir,
                         sessionDatabase: sessionPath,
                     })
-                    store.seedActivities(records.map((record) => record.activity))
                 } catch (err) {
-                    store.applyStreamingEvent(buildResumeError(err))
+                    if (switchId === sessionSwitchIdRef.current) {
+                        store.applyStreamingEvent(buildResumeError(err))
+                    }
                     return
                 }
+
+                if (switchId !== sessionSwitchIdRef.current) return
+                agentWSClientRef.current?.quit()
                 const client = server.createClient(sessionPath)
-                if (client !== null) wireClient(client)
+                if (client !== null)
+                    activateSession(
+                        client,
+                        records.map((record) => record.activity),
+                    )
             })()
         },
-        [server, store, wireClient, reset, clearAgentStatuses],
+        [server, store, activateSession],
     )
 
     // Agent activities and navigation.
@@ -341,6 +383,7 @@ export function App({ server, onBeforeExit }: AppProps) {
                         onOpenTask={handleOpenTask}
                         onEnterTower={() => setRegion("tower")}
                         onExitToChat={() => setRegion("chat")}
+                        onNewSession={handleNewSession}
                         onResume={handleResumeSelect}
                     />
                 ) : null}

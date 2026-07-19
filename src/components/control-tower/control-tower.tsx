@@ -27,6 +27,8 @@ export interface ControlTowerProps {
     onEnterTower: () => void
     // Asks the app to move keyboard focus back to the chat.
     onExitToChat: () => void
+    // Starts a fresh session and stops the currently active one.
+    onNewSession: () => void
     // Loads the chosen session and reconnects the agent.
     onResume: (sessionPath: string) => void
 }
@@ -39,6 +41,7 @@ const TABS: readonly TowerTab[] = [
 const CONTROL_INDEX = 0
 const SETTINGS_INDEX = 1
 const SETTINGS_ITEMS: readonly SettingsMenuItem[] = [
+    { id: "new-session", label: "New session" },
     { id: "resume", label: "Resume" },
     { id: "update", label: "Check for updates" },
 ]
@@ -62,6 +65,7 @@ export function ControlTower({
     onOpenTask,
     onEnterTower,
     onExitToChat,
+    onNewSession,
     onResume,
 }: ControlTowerProps) {
     const [activeTab, setActiveTab] = useState(0)
@@ -91,6 +95,10 @@ export function ControlTower({
 
     const activateMenuItem = (tabIndex: number, itemIndex: number): void => {
         const item = itemsForTab(tabIndex)[itemIndex]
+        if (item?.id === "new-session") {
+            onNewSession()
+            activateTab(CONTROL_INDEX)
+        }
         if (item?.id === "resume") setMode("resume")
         if (item?.id === "update") setMode("update")
     }
@@ -102,7 +110,7 @@ export function ControlTower({
 
     const cancelResume = (): void => {
         setMode("browse")
-        setFocus({ area: "menu", itemIndex: 0 })
+        setFocus({ area: "menu", itemIndex: SETTINGS_ITEMS.findIndex((item) => item.id === "resume") })
     }
 
     const cancelUpdate = (): void => {
