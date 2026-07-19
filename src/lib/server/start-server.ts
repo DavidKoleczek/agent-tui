@@ -62,7 +62,7 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
             port: serverPort,
             workingDir: cwd,
             sessionDatabase: sessionDatabase ?? generateSessionDatabasePath(cwd),
-            initialModel: sessionDatabase === undefined ? DEFAULT_MODEL : undefined,
+            defaultModel: DEFAULT_MODEL,
             log: wsLog,
             serverLog: log,
         })

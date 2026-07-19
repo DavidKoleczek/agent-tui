@@ -16,7 +16,7 @@ export interface ConnectAgentWebSocketOptions {
     port: number
     workingDir: string
     sessionDatabase: string
-    initialModel?: string
+    defaultModel: string
     log: WsLog
     serverLog: LogFile
 }
@@ -41,9 +41,9 @@ const CLOSE_GRACE_MS = 1_000
 // Sends are silent no-ops when the socket is not OPEN.
 // The UI gates submission via isReady() and we explicitly don't surface "not ready yet" for now
 export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): AgentWSClient {
-    const { port, workingDir, sessionDatabase, initialModel, log, serverLog } = options
+    const { port, workingDir, sessionDatabase, defaultModel, log, serverLog } = options
 
-    const url = buildUrl(port, workingDir, sessionDatabase)
+    const url = buildUrl(port, workingDir, sessionDatabase, defaultModel)
     const ws = new WebSocket(url)
 
     // Timestamp of the most recent user send, cleared once the first activity arrives so we record
@@ -67,16 +67,7 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
         return true
     }
 
-    ws.onopen = (): void => {
-        if (initialModel !== undefined) {
-            trySend({
-                type: "session_config_change",
-                config_key: "model",
-                new_value: initialModel,
-            })
-        }
-        notifyReady()
-    }
+    ws.onopen = notifyReady
     ws.onclose = (): void => {
         notifyReady()
     }
@@ -174,8 +165,12 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
     }
 }
 
-function buildUrl(port: number, workingDir: string, sessionDatabase: string): string {
-    const params = new URLSearchParams({ working_dir: workingDir, session_database: sessionDatabase })
+function buildUrl(port: number, workingDir: string, sessionDatabase: string, defaultModel: string): string {
+    const params = new URLSearchParams({
+        working_dir: workingDir,
+        session_database: sessionDatabase,
+        default_model: defaultModel,
+    })
     return `ws://127.0.0.1:${port}/agent?${params.toString()}`
 }
 
