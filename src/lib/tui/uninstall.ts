@@ -273,31 +273,8 @@ async function confirm(message: string): Promise<boolean> {
 
 // region Public flow
 
-const USAGE = `Usage: floppy uninstall [--yes]
-
-Removes the managed runtime, the installed floppy binary, and the PATH entry the installer added. Refuses to run
-while any floppy instance is still running. Conversation history in per-directory .agents folders is left untouched.
-
-Options:
-  -y, --yes    Skip the confirmation prompt.
-  -h, --help   Show this message.
-`
-
 // Tears down the managed runtime.
-export async function runUninstall(args: string[]): Promise<number> {
-    let yes = false
-    for (const arg of args) {
-        if (arg === "--yes" || arg === "-y") {
-            yes = true
-        } else if (arg === "--help" || arg === "-h") {
-            process.stdout.write(USAGE)
-            return 0
-        } else {
-            process.stderr.write(`floppy uninstall: unrecognized option '${arg}'\n\n${USAGE}`)
-            return 2
-        }
-    }
-
+export async function runUninstall(yes: boolean): Promise<number> {
     // A dev build (run from source) was never installed, so there is nothing to reverse;
     // refuse rather than act on the real managed root. process.execPath here is the Bun binary, not an installed floppy.
     if (isDevBuild()) {

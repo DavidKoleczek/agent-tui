@@ -36,6 +36,8 @@ Launch with `floppy`!
 ```bash
 # Resume an existing conversation in the current directory
 floppy --resume
+
+floppy --help
 ```
 
 ### Shift+Enter for Newlines on Windows Terminal
