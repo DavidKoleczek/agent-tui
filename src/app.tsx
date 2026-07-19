@@ -315,9 +315,10 @@ export function App({ server, initialSessionDatabase, onInitialResumeError, onBe
                 logRef.current(`user message submission is disabled while viewing agent ${activeAgentId}`)
                 return
             }
-            // Show the message immediately, then send it to the server.
-            store.pushUserMessage(value)
-            agentWSClientRef.current?.sendUserMessage(value)
+            // Show the message immediately once the websocket accepts it; the server echo reconciles this entry.
+            if (agentWSClientRef.current?.sendUserMessage(value) ?? false) {
+                store.pushOptimisticUserMessage(value)
+            }
         },
         [activeAgentId, store],
     )

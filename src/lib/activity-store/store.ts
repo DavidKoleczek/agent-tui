@@ -16,7 +16,7 @@ import { applyStreamingEvent, type ReducerLog, noopLog, setActivity } from "./re
 export interface ActivityStore {
     subscribe: (listener: () => void) => () => void
     getSnapshot: () => ReadonlyMap<string, SessionActivity>
-    pushUserMessage: (content: string) => void
+    pushOptimisticUserMessage: (content: string) => void
     // Optimistically records a tool approval decision so the UI reacts instantly; reconciled by the server's echo.
     setTaskPermission: (agentId: string, id: string, permission: TaskPermission) => void
     applyStreamingEvent: (event: StreamingEvent) => void
@@ -33,6 +33,7 @@ export interface CreateActivityStoreOptions {
 export function createActivityStore(options: CreateActivityStoreOptions = {}): ActivityStore {
     const log = options.log ?? noopLog
     let activities: ReadonlyMap<string, SessionActivity> = new Map()
+    const pendingOptimisticUserActivityIds: string[] = []
     const listeners = new Set<() => void>()
 
     const notify = (next: ReadonlyMap<string, SessionActivity>): void => {
@@ -54,7 +55,7 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
         getSnapshot() {
             return activities
         },
-        pushUserMessage(content) {
+        pushOptimisticUserMessage(content) {
             const userActivity: UserActivity = {
                 id: crypto.randomUUID(),
                 agent_id: MAIN_AGENT_ID,
@@ -63,6 +64,7 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
                 timestamp: nowIso(),
                 content,
             }
+            pendingOptimisticUserActivityIds.push(userActivity.id)
             notify(setActivity(activities, userActivity))
         },
         setTaskPermission(agentId, id, permission) {
@@ -90,16 +92,44 @@ export function createActivityStore(options: CreateActivityStoreOptions = {}): A
         // Takes a StreamingEvent, runs it through the applyStreamingEvent reducer
         // which either returns a new map, or the current one, and then notifies subscribers.
         applyStreamingEvent(event) {
+            if (
+                event.type === "activity_created" &&
+                event.agent_id === MAIN_AGENT_ID &&
+                event.activity.type === "user" &&
+                event.activity.agent_id === event.agent_id
+            ) {
+                // The server assigns its own ID, so reconcile its echo with the oldest optimistic entry.
+                const optimisticId = pendingOptimisticUserActivityIds.shift()
+                if (optimisticId !== undefined && activities.has(optimisticId)) {
+                    notify(replaceActivityPreservingOrder(activities, optimisticId, event.activity))
+                    return
+                }
+            }
             notify(applyStreamingEvent(event, activities, log))
         },
         seedActivities(seed) {
+            pendingOptimisticUserActivityIds.length = 0
             const next = new Map<string, SessionActivity>()
             for (const activity of seed) next.set(activity.id, activity)
             notify(next)
         },
         reset() {
+            pendingOptimisticUserActivityIds.length = 0
             if (activities.size === 0) return
             notify(new Map())
         },
     }
+}
+
+function replaceActivityPreservingOrder(
+    current: ReadonlyMap<string, SessionActivity>,
+    replacedId: string,
+    replacement: SessionActivity,
+): ReadonlyMap<string, SessionActivity> {
+    const next = new Map<string, SessionActivity>()
+    for (const [id, activity] of current) {
+        if (id === replacedId) next.set(replacement.id, replacement)
+        else next.set(id, activity)
+    }
+    return next
 }
