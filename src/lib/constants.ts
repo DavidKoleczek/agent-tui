@@ -42,13 +42,16 @@ export const Colors = {
     overlayBackground: "#0d0d0d",
 } as const
 
+export const DEFAULT_MODEL = "gpt-5.6-sol"
+
 // Only show these models even if the API returns more.
 export const MODEL_ALLOWLIST: readonly string[] = [
-    "gpt-5.5",
-    "claude-opus-4-7",
-    "claude-sonnet-4-6",
+    DEFAULT_MODEL,
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "claude-opus-4-8",
+    "claude-sonnet-5",
     "gemini-3.5-flash",
-    "gpt-5.4-mini",
 ]
 
 // Lines advanced per mouse-wheel tick in the activity log.

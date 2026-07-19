@@ -1,3 +1,4 @@
+import { DEFAULT_MODEL } from "../constants"
 import { PINNED_VERSIONS } from "../versions"
 import { connectAgentWebSocket, type AgentWSClient } from "./agent"
 import {
@@ -61,6 +62,7 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
             port: serverPort,
             workingDir: cwd,
             sessionDatabase: sessionDatabase ?? generateSessionDatabasePath(cwd),
+            initialModel: sessionDatabase === undefined ? DEFAULT_MODEL : undefined,
             log: wsLog,
             serverLog: log,
         })

@@ -16,6 +16,7 @@ export interface ConnectAgentWebSocketOptions {
     port: number
     workingDir: string
     sessionDatabase: string
+    initialModel?: string
     log: WsLog
     serverLog: LogFile
 }
@@ -40,7 +41,7 @@ const CLOSE_GRACE_MS = 1_000
 // Sends are silent no-ops when the socket is not OPEN.
 // The UI gates submission via isReady() and we explicitly don't surface "not ready yet" for now
 export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): AgentWSClient {
-    const { port, workingDir, sessionDatabase, log, serverLog } = options
+    const { port, workingDir, sessionDatabase, initialModel, log, serverLog } = options
 
     const url = buildUrl(port, workingDir, sessionDatabase)
     const ws = new WebSocket(url)
@@ -58,7 +59,22 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
         for (const listener of streamingListeners) listener(activity)
     }
 
+    const trySend = (activity: ClientEvent): boolean => {
+        if (ws.readyState !== WebSocket.OPEN) return false
+        const text = JSON.stringify(activity)
+        ws.send(text)
+        log.sent(text)
+        return true
+    }
+
     ws.onopen = (): void => {
+        if (initialModel !== undefined) {
+            trySend({
+                type: "session_config_change",
+                config_key: "model",
+                new_value: initialModel,
+            })
+        }
         notifyReady()
     }
     ws.onclose = (): void => {
@@ -83,14 +99,6 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
         } else {
             log.recv("(binary frame omitted)")
         }
-    }
-
-    const trySend = (activity: ClientEvent): boolean => {
-        if (ws.readyState !== WebSocket.OPEN) return false
-        const text = JSON.stringify(activity)
-        ws.send(text)
-        log.sent(text)
-        return true
     }
 
     let closing: Promise<void> | null = null
