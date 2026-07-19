@@ -34,9 +34,16 @@ export interface ServerHandle {
     wsLogPath: string
 }
 
+export interface StartServerOptions {
+    cwd?: string
+    // Existing session database to use for the first websocket connection instead of creating a new session.
+    initialSessionDatabase?: string
+}
+
 // Boots the agent-server lifecycle without blocking the caller.
 // Errors during resolution, spawn, or health check are caught and recorded in the per-session log
-export function startServer(cwd: string = process.cwd()): ServerHandle {
+export function startServer(options: StartServerOptions = {}): ServerHandle {
+    const cwd = options.cwd ?? process.cwd()
     const startedAt = Date.now()
     const sinceStart = (): number => Date.now() - startedAt
 
@@ -102,7 +109,7 @@ export function startServer(cwd: string = process.cwd()): ServerHandle {
                 try {
                     serverPort = port
                     log.write(`[agent-tui] ws_log=${wsLog.path}\n`)
-                    const client = connect()
+                    const client = connect(options.initialSessionDatabase)
                     if (client !== null) {
                         // The socket opening is the moment the TUI can first send a message; log it with total elapsed from start.
                         let readyLogged = false

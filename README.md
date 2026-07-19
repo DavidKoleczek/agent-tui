@@ -29,7 +29,14 @@ Linux:
 curl -fsSL https://github.com/DavidKoleczek/agent-tui/releases/latest/download/install.sh | bash
 ```
 
+## Usage
+
 Launch with `floppy`!
+
+```bash
+# Resume an existing conversation in the current directory
+floppy --resume
+```
 
 ### Shift+Enter for Newlines on Windows Terminal
 

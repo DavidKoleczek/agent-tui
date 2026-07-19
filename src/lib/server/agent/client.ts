@@ -52,10 +52,16 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
 
     const readyListeners = new Set<() => void>()
     const streamingListeners = new Set<(activity: StreamingEvent) => void>()
+    const pendingStreamingEvents: StreamingEvent[] = []
     const notifyReady = (): void => {
         for (const listener of readyListeners) listener()
     }
+    // Buffer startup events until the first subscriber is installed so resume hydration cannot miss early server frames.
     const notifyActivity = (activity: StreamingEvent): void => {
+        if (streamingListeners.size === 0) {
+            pendingStreamingEvents.push(activity)
+            return
+        }
         for (const listener of streamingListeners) listener(activity)
     }
 
@@ -105,6 +111,8 @@ export function connectAgentWebSocket(options: ConnectAgentWebSocketOptions): Ag
         },
         subscribeActivities(listener) {
             streamingListeners.add(listener)
+            // Remove all buffered events from pendingStreamingEvents and deliver them to the new subscriber.
+            for (const activity of pendingStreamingEvents.splice(0)) listener(activity)
             return () => {
                 streamingListeners.delete(listener)
             }

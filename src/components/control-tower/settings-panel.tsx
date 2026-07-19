@@ -1,4 +1,5 @@
-import { MenuItem, SessionPicker, UpdatePanel } from "./settings-components"
+import { SessionPicker } from "../common/resume"
+import { MenuItem, UpdatePanel } from "./settings-components"
 
 export interface SettingsMenuItem {
     id: string

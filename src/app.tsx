@@ -9,6 +9,7 @@ import {
     useTowerKeybinds,
 } from "./hooks"
 import { buildActivityIndex, createActivityStore, getAgentActivities, resolveAgentPath } from "./lib/activity-store"
+import { Colors } from "./lib/constants"
 import { fetchSessionActivities, type AgentWSClient, type ServerHandle } from "./lib/server"
 import {
     MAIN_AGENT_ID,
@@ -21,10 +22,12 @@ import { nowIso } from "./schemas/branded-types"
 
 export interface AppProps {
     server: ServerHandle
+    initialSessionDatabase: string | null
+    onInitialResumeError: (err: unknown) => void
     onBeforeExit: () => void
 }
 
-export function App({ server, onBeforeExit }: AppProps) {
+export function App({ server, initialSessionDatabase, onInitialResumeError, onBeforeExit }: AppProps) {
     // Activity data and agent navigation.
     const logRef = useRef<(message: string) => void>(() => {})
     // Activity state lives outside React so subscribers only re-render when its snapshot changes.
@@ -49,6 +52,7 @@ export function App({ server, onBeforeExit }: AppProps) {
     // True once the agent worker has entered its run loop and created the session database.
     const [dbReady, setDbReady] = useState(false)
     const [ready, setReady] = useState(false)
+    const [initializingResume, setInitializingResume] = useState(initialSessionDatabase !== null)
 
     // Activity log and input state.
     // Used to inspect and clear the chat draft from global keyboard handling.
@@ -117,20 +121,6 @@ export function App({ server, onBeforeExit }: AppProps) {
         [store, setAgentStatus, clearAgentStatuses],
     )
 
-    useEffect(() => {
-        let cancelled = false
-        void server.ws.then((client) => {
-            if (cancelled || client === null) return
-            wireClient(client)
-        })
-        return () => {
-            cancelled = true
-            sessionSwitchIdRef.current++
-            logRef.current = () => {}
-            teardownRef.current()
-        }
-    }, [server, wireClient])
-
     const activateSession = useCallback(
         (client: AgentWSClient, seed: readonly SessionActivity[] | null) => {
             reset()
@@ -146,6 +136,51 @@ export function App({ server, onBeforeExit }: AppProps) {
         },
         [store, wireClient, reset, clearAgentStatuses, resetSessionConfig],
     )
+
+    // Normal launches can wire the newly generated session immediately,
+    // while --resume must hydrate the selected conversation before revealing the chat.
+    useEffect(() => {
+        let cancelled = false
+
+        if (initialSessionDatabase === null) {
+            // The server owns creation of the default session, so only its initial websocket needs to be attached.
+            void server.ws.then((client) => {
+                if (cancelled || client === null) return
+                wireClient(client)
+            })
+        } else {
+            // Wait for the HTTP API, load persisted history, then activate the websocket opened for the selected database.
+            void (async () => {
+                await server.process
+                const baseUrl = server.httpBaseUrl()
+                if (baseUrl === null) throw new Error("agent server failed to start")
+
+                const records = await fetchSessionActivities({
+                    baseUrl,
+                    workingDir: server.workingDir,
+                    sessionDatabase: initialSessionDatabase,
+                })
+                const client = await server.ws
+                if (client === null) throw new Error("agent server failed to connect to the selected conversation")
+                if (cancelled) return
+
+                activateSession(
+                    client,
+                    records.map((record) => record.activity),
+                )
+                setInitializingResume(false)
+            })().catch((err: unknown) => {
+                if (!cancelled) onInitialResumeError(err)
+            })
+        }
+
+        return () => {
+            cancelled = true
+            sessionSwitchIdRef.current++
+            logRef.current = () => {}
+            teardownRef.current()
+        }
+    }, [server, initialSessionDatabase, onInitialResumeError, wireClient, activateSession])
 
     const handleNewSession = useCallback(() => {
         if (server.httpBaseUrl() === null) return
@@ -347,6 +382,15 @@ export function App({ server, onBeforeExit }: AppProps) {
             setRegion((current) => (current === "chat" ? "tower" : "chat"))
         },
     })
+
+    // Keep the chat hidden until persisted activities are loaded and the resumed websocket is wired.
+    if (initializingResume) {
+        return (
+            <box flexGrow={1} alignItems="center" justifyContent="center">
+                <text fg={Colors.mutedText}>Loading conversation...</text>
+            </box>
+        )
+    }
 
     return (
         <box flexDirection="column" flexGrow={1}>
